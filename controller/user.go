@@ -26,7 +26,7 @@ type loginResponse struct {
 }
 
 type simpleResponse struct {
-	Message string      `json:"message"`
+	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data"`
 }
 

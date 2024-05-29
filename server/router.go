@@ -51,6 +51,18 @@ func registerMerchantRoute(r *echo.Group, db *pgxpool.Pool) {
 	newRouteWithAdminAuth(merchantGroup, "GET", "/:merchantId/items", ctr.GetItem)
 }
 
+func registerPurchaseRoute(r *echo.Group, db *pgxpool.Pool) {
+	ctr := controller.NewPurchaseController(svc.NewPurchaseSvc(repo.NewPurchaseRepo(db)))
+
+	merchantsGroup := r.Group("/merchants")
+	newRouteWithUserAuth(merchantsGroup, "POST", "nearby/:lat,:long", ctr.GetNearbyMerchant)
+
+	// usersGroup := r.Group("/users")
+	// newRouteWithUserAuth(usersGroup, "GET", "/estimate", ctr.EstimatePurchase)
+	// newRouteWithUserAuth(usersGroup, "POST", "/orders", ctr.PlaceOrder)
+	// newRouteWithUserAuth(usersGroup, "GET", "/orders", ctr.GetOrder)
+}
+
 func registerImageRoute(r *echo.Group, config configs.Config) {
 	bucket := config.AWS_S3_BUCKET_NAME
 

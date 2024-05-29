@@ -170,6 +170,8 @@ func getMerchantConstructWhereQuery(filter entities.GetMerchantQueries) string {
 func getItemConstructWhereQuery(filter entities.GetItemQueries) string {
 	whereSQL := []string{}
 
+	whereSQL = append(whereSQL, " merchant_id = '"+filter.MerchantId+"'")
+
 	if filter.ItemId != "" {
 		whereSQL = append(whereSQL, " id = '"+filter.ItemId+"'")
 	}

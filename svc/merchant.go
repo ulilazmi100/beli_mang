@@ -13,7 +13,7 @@ type MerchantSvc interface {
 	RegisterMerchant(ctx context.Context, newMerchant entities.MerchantRegistrationPayload) (string, error)
 	GetMerchant(ctx context.Context, getMerchantQueries entities.GetMerchantQueries) ([]entities.GetMerchantResponse, error)
 	RegisterItem(ctx context.Context, newItem entities.ItemRegistrationPayload) (string, error)
-	GetItem(ctx context.Context, getItemQueries entities.GetItemQueries, merchantId string) ([]entities.GetItemResponse, error)
+	GetItem(ctx context.Context, getItemQueries entities.GetItemQueries) ([]entities.GetItemResponse, error)
 }
 
 type merchantSvc struct {
@@ -71,8 +71,8 @@ func (s *merchantSvc) RegisterItem(ctx context.Context, newItem entities.ItemReg
 	return id, nil
 }
 
-func (s *merchantSvc) GetItem(ctx context.Context, getItemQueries entities.GetItemQueries, merchantId string) ([]entities.GetItemResponse, error) {
-	_, err := s.repo.GetMerchant(ctx, merchantId)
+func (s *merchantSvc) GetItem(ctx context.Context, getItemQueries entities.GetItemQueries) ([]entities.GetItemResponse, error) {
+	_, err := s.repo.GetMerchant(ctx, getItemQueries.MerchantId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return []entities.GetItemResponse{}, responses.NewNotFoundError("merchantId not found")

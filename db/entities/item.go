@@ -24,6 +24,7 @@ type ItemRegistrationPayload struct {
 }
 
 type GetItemQueries struct {
+	MerchantId      string `db:"merchant_id" json:"merchantId" query:"merchantId"`
 	ItemId          string `db:"id" json:"itemId" query:"itemId"`
 	Limit           int    `json:"limit" query:"limit"`
 	Offset          int    `json:"offset" query:"offset"`

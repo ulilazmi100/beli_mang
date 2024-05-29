@@ -112,10 +112,12 @@ func (c *MerchantController) RegisterItem(ctx echo.Context) error {
 func (c *MerchantController) GetItem(ctx echo.Context) error {
 	var total int
 	var itemQuery entities.GetItemQueries
-	merchantId := ctx.Param("merchantId")
+
 	if err := ctx.Bind(&itemQuery); err != nil {
 		return responses.NewBadRequestError(err.Error())
 	}
+
+	itemQuery.MerchantId = ctx.Param("merchantId")
 
 	if itemQuery.Limit == 0 {
 		itemQuery.Limit = 5
@@ -125,7 +127,7 @@ func (c *MerchantController) GetItem(ctx echo.Context) error {
 		return responses.NewBadRequestError("invalid query param")
 	}
 
-	resp, err := c.svc.GetItem(ctx.Request().Context(), itemQuery, merchantId)
+	resp, err := c.svc.GetItem(ctx.Request().Context(), itemQuery)
 	if err != nil {
 		return err
 	}

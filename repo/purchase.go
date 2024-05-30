@@ -37,7 +37,7 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
     FROM merchants
     ORDER BY distance;` //No need for earth constant because they all would be multiplied with the same constant
 
-	query += getPurchaseConstructWhereQuery(filter)
+	query += getNearbyMerchantConstructWhereQuery(filter)
 
 	query += " limit $3 offset $4"
 
@@ -85,7 +85,7 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 	return merchants, nil
 }
 
-func getPurchaseConstructWhereQuery(filter entities.GetNearbyMerchantQueries) string {
+func getNearbyMerchantConstructWhereQuery(filter entities.GetNearbyMerchantQueries) string {
 	whereSQL := []string{}
 
 	if filter.MerchantId != "" {

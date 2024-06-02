@@ -97,17 +97,17 @@ func (r *purchaseRepo) GetMerchantLocations(ctx context.Context, getEstimatePayl
 	//TODO: Asynchronize GetMerchantLocations
 	var merchants []entities.RoutePoint
 
-	for _, v := range getEstimatePayload.Orders {
+	for _, order := range getEstimatePayload.Orders {
 		var merch entities.RoutePoint
 		query := "SELECT latitude, longitude FROM merchants WHERE id = $1"
 
-		row := r.db.QueryRow(ctx, query, v.MerchantId)
+		row := r.db.QueryRow(ctx, query, order.MerchantId)
 		err := row.Scan(&merch.Latitude, &merch.Longitude)
 		if err != nil {
 			return []entities.RoutePoint{}, err
 		}
 
-		if v.IsStartingPoint {
+		if order.IsStartingPoint {
 			merchants = append([]entities.RoutePoint{merch}, merchants...)
 		} else {
 			merchants = append(merchants, merch)

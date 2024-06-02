@@ -95,7 +95,7 @@ func (c *PurchaseController) PlaceOrder(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusOK, resp)
+	return ctx.JSON(http.StatusCreated, resp)
 }
 
 func (c *PurchaseController) GetOrder(ctx echo.Context) error {

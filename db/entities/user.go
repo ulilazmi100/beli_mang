@@ -102,7 +102,7 @@ func ValidateImageURL(value any) error {
 	if !ok {
 		return errors.New("parse error")
 	}
-	pattern := `^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+(?:.jpg|.jpeg|.png)+$`
+	pattern := `^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+(?:.jpg|.jpeg)+$`
 	rgx := regexp.MustCompile(pattern)
 	if !rgx.MatchString(url) {
 		return errors.New("invalid image URL format")

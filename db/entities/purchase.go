@@ -14,8 +14,8 @@ type GetNearbyMerchantQueries struct {
 	Offset           int     `json:"offset" query:"offset"`
 	Name             string  `db:"name" json:"name" query:"name"`
 	MerchantCategory string  `db:"merchant_category" json:"merchantCategory" query:"merchantCategory"`
-	Latitude         float64 `db:"latitude" json:"latitude"`
-	Longitude        float64 `db:"longitude" json:"longitude"`
+	Latitude         float64 `db:"latitude" json:"lat"`
+	Longitude        float64 `db:"longitude" json:"long"`
 }
 
 type GetNearbyMerchantResponse struct {

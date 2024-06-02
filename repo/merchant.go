@@ -42,7 +42,7 @@ func (r *merchantRepo) GetMerchant(ctx context.Context, merchantId string) (stri
 func (r *merchantRepo) CreateMerchant(ctx context.Context, merchant *entities.MerchantRegistrationPayload) (string, error) {
 	var id string
 
-	statement := "INSERT INTO merchants (name, merchant_category, name, image_url, latitude, longitude) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+	statement := "INSERT INTO merchants (name, merchant_category, image_url, latitude, longitude) VALUES ($1, $2, $3, $4, $5) RETURNING id"
 
 	row := r.db.QueryRow(ctx, statement, merchant.Name, merchant.MerchantCategory, merchant.ImageUrl, merchant.Location.Latitude, merchant.Location.Longitude)
 	if err := row.Scan(&id); err != nil {

@@ -47,7 +47,7 @@ func (c *MerchantController) RegisterMerchant(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusOK, registerMerchantResponse{
+	return ctx.JSON(http.StatusCreated, registerMerchantResponse{
 		MerchantId: id,
 	})
 }
@@ -104,7 +104,7 @@ func (c *MerchantController) RegisterItem(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusOK, registerItemResponse{
+	return ctx.JSON(http.StatusCreated, registerItemResponse{
 		ItemId: id,
 	})
 }

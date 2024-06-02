@@ -9,8 +9,8 @@ import (
 type Merchant struct {
 	Id               string    `db:"id" json:"id"`
 	Name             string    `db:"name" json:"name"`
-	Latitude         float64   `db:"latitude" json:"latitude"`
-	Longitude        float64   `db:"longitude" json:"longitude"`
+	Latitude         float64   `db:"latitude" json:"lat"`
+	Longitude        float64   `db:"longitude" json:"long"`
 	MerchantCategory string    `db:"merchant_category" json:"merchantCategory"`
 	ImageUrl         string    `db:"image_url" json:"imageUrl"`
 	CreatedAt        time.Time `db:"created_at" json:"createdAt"`
@@ -24,8 +24,8 @@ type MerchantRegistrationPayload struct {
 }
 
 type Location struct {
-	Latitude  float64 `db:"latitude" json:"latitude" form:"latitude"`
-	Longitude float64 `db:"longitude" json:"longitude" form:"longitude"`
+	Latitude  float64 `db:"latitude" json:"lat" form:"lat"`
+	Longitude float64 `db:"longitude" json:"long" form:"long"`
 }
 
 type GetMerchantQueries struct {
@@ -60,13 +60,23 @@ func (u *MerchantRegistrationPayload) Validate() error {
 			validation.Required.Error("imageUrl is required"),
 			validation.By(ValidateImageURL),
 		),
-		validation.Field(&u.Location.Latitude,
-			validation.Required.Error("latitude is required"),
-		),
-		validation.Field(&u.Location.Longitude,
-			validation.Required.Error("longitude is required"),
+		validation.Field(&u.Location,
+			validation.Required.Error("location is required"),
+			validation.By(ValidateLocation),
 		),
 	)
 
 	return err
+}
+
+func ValidateLocation(value interface{}) error {
+	location, ok := value.(Location)
+	if !ok {
+		return validation.NewError("validation_invalid_location", "invalid location")
+	}
+
+	return validation.ValidateStruct(&location,
+		validation.Field(&location.Latitude, validation.Required.Error("latitude is required")),
+		validation.Field(&location.Longitude, validation.Required.Error("longitude is required")),
+	)
 }

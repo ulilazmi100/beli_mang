@@ -27,7 +27,7 @@ func NewUserRepo(db *pgxpool.Pool) UserRepo {
 
 func (r *userRepo) GetUser(ctx context.Context, username string) (*entities.User, error) {
 	var user entities.User
-	query := "SELECT id, email, password_hash, role FROM users WHERE username = $1"
+	query := "SELECT id, email, password, role FROM users WHERE username = $1"
 
 	row := r.db.QueryRow(ctx, query, username)
 	err := row.Scan(&user.Id, &user.Email, &user.Password, &user.Role)
@@ -41,7 +41,7 @@ func (r *userRepo) GetUser(ctx context.Context, username string) (*entities.User
 
 func (r *userRepo) GetUserByUsernameOrMailAndRole(ctx context.Context, username string, email string, role string) (*entities.User, error) {
 	var user entities.User
-	query := "SELECT id, email, password_hash, role FROM users WHERE username = $1 OR (email = $2 AND role = $3)"
+	query := "SELECT id, email, password, role FROM users WHERE username = $1 OR (email = $2 AND role = $3)"
 
 	row := r.db.QueryRow(ctx, query, username, email, role)
 	err := row.Scan(&user.Id, &user.Email, &user.Password, &user.Role)
@@ -55,7 +55,7 @@ func (r *userRepo) GetUserByUsernameOrMailAndRole(ctx context.Context, username 
 
 func (r *userRepo) CreateUser(ctx context.Context, user *entities.RegistrationPayload, hashPassword string, role string) (string, error) {
 	var id string
-	statement := "INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id"
+	statement := "INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id"
 
 	row := r.db.QueryRow(ctx, statement, user.Username, user.Email, hashPassword, role)
 	if err := row.Scan(&id); err != nil {
@@ -67,7 +67,7 @@ func (r *userRepo) CreateUser(ctx context.Context, user *entities.RegistrationPa
 
 func (r *userRepo) CreateUserTx(ctx context.Context, tx pgx.Tx, user *entities.RegistrationPayload, hashPassword string, role string) (string, error) {
 	var id string
-	statement := "INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id"
+	statement := "INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id"
 
 	row := tx.QueryRow(ctx, statement, user.Username, user.Email, hashPassword, role)
 	if err := row.Scan(&id); err != nil {

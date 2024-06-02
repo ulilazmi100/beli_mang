@@ -1,7 +1,7 @@
 -- Creating the merchants table
 CREATE TABLE IF NOT EXISTS merchants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(30) NOT NULL,
+    name VARCHAR(35) NOT NULL,
     merchant_category VARCHAR(30) NOT NULL CHECK (merchant_category IN (
         'SmallRestaurant', 'MediumRestaurant', 'LargeRestaurant', 'MerchandiseRestaurant', 'BoothKiosk', 'ConvenienceStore'
     )),

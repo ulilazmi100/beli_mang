@@ -31,7 +31,7 @@ func AdminAuth(next echo.HandlerFunc) echo.HandlerFunc {
 			return responses.NewUnauthorizedError(err.Error())
 		}
 
-		if payload.Role == "admin" {
+		if payload.Role != "admin" {
 			return responses.NewUnauthorizedError("user is not an admin")
 		}
 
@@ -63,7 +63,7 @@ func UserAuth(next echo.HandlerFunc) echo.HandlerFunc {
 			return responses.NewUnauthorizedError(err.Error())
 		}
 
-		if payload.Role == "user" {
+		if payload.Role != "user" {
 			return responses.NewUnauthorizedError("user is not a user")
 		}
 

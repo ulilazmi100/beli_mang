@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
-    name VARCHAR(30) NOT NULL,
+    name VARCHAR(35) NOT NULL,
     product_category VARCHAR(30) NOT NULL CHECK (product_category IN (
         'Beverage', 'Food', 'Snack', 'Condiments', 'Additions'
     )),

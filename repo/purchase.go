@@ -3,15 +3,23 @@ package repo
 import (
 	"beli_mang/db/entities"
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PurchaseRepo interface {
 	GetNearbyMerchants(ctx context.Context, filter entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, error)
+	GetMerchantLocations(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) ([]entities.RoutePoint, error)
+	GetTotalItemsPrice(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) (int, error)
+	SaveOrderEstimation(ctx context.Context, order entities.OrderInfo) (string, error)
+	SaveOrderItems(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, orderId string) error
+	PlaceOrder(ctx context.Context, placeOrderPayload entities.PlaceOrderPayload) (pgconn.CommandTag, error)
+	GetUserOrders(ctx context.Context, filter entities.GetUserOrderQueries) ([]entities.GetUserOrderResponse, error)
 }
 
 type purchaseRepo struct {
@@ -85,6 +93,206 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 	return merchants, nil
 }
 
+func (r *purchaseRepo) GetMerchantLocations(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) ([]entities.RoutePoint, error) {
+	//TODO: Asynchronize GetMerchantLocations
+	var merchants []entities.RoutePoint
+
+	for _, v := range getEstimatePayload.Orders {
+		var merch entities.RoutePoint
+		query := "SELECT latitude, longitude FROM merchants WHERE id = $1"
+
+		row := r.db.QueryRow(ctx, query, v.MerchantId)
+		err := row.Scan(&merch.Latitude, &merch.Longitude)
+		if err != nil {
+			return []entities.RoutePoint{}, err
+		}
+
+		if v.IsStartingPoint {
+			merchants = append([]entities.RoutePoint{merch}, merchants...)
+		} else {
+			merchants = append(merchants, merch)
+		}
+
+	}
+
+	return merchants, nil
+}
+
+func (r *purchaseRepo) GetTotalItemsPrice(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) (int, error) {
+	//TODO: Asynchronize CheckItemsAvailability
+
+	var totalPrice int
+
+	for _, order := range getEstimatePayload.Orders {
+		for _, item := range order.Items {
+			var price int
+			query := "SELECT price FROM items WHERE id = $1 AND merchant_id = $2"
+
+			err := r.db.QueryRow(ctx, query, item.ItemId, order.MerchantId).Scan(&price)
+			if err != nil {
+				return 0, err
+			}
+			totalPrice += (price * item.Quantity)
+		}
+	}
+
+	return totalPrice, nil
+}
+
+func (r *purchaseRepo) SaveOrderEstimation(ctx context.Context, order entities.OrderInfo) (string, error) {
+	var id string
+
+	statement := "INSERT INTO orders (user_id, total_price, estimated_delivery_time_in_minutes, status) VALUES ($1, $2, $3, $4) RETURNING id"
+
+	row := r.db.QueryRow(ctx, statement, order.UserId, order.TotalPrice, order.EstimatedDeliveryTimeInMinutes, order.Status)
+	if err := row.Scan(&id); err != nil {
+		return "", err
+	}
+
+	return id, nil
+}
+
+func (r *purchaseRepo) SaveOrderItems(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, orderId string) error {
+	//TODO: Asynchronize SaveOrderItems
+
+	statement := "INSERT INTO order_items (order_id, item_id, quantity) VALUES ($1, $2, $3)"
+
+	for _, order := range getEstimatePayload.Orders {
+		for _, item := range order.Items {
+
+			_, err := r.db.Exec(ctx, statement, orderId, item.ItemId, item.Quantity)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *purchaseRepo) PlaceOrder(ctx context.Context, placeOrderPayload entities.PlaceOrderPayload) (pgconn.CommandTag, error) {
+	statement := "UPDATE orders SET status = ordered WHERE id = $1"
+
+	res, err := r.db.Exec(ctx, statement, placeOrderPayload.CalculatedEstimateId)
+
+	return res, err
+}
+
+func (r *purchaseRepo) GetUserOrders(ctx context.Context, filter entities.GetUserOrderQueries) ([]entities.GetUserOrderResponse, error) {
+	whereClause, args := getGetUserOrderConstructWhereQuery(filter)
+
+	query := `
+	SELECT
+	    o.id as order_id,
+	    m.id as merchant_id,
+	    m.name as merchant_name,
+	    m.image_url as merchant_image_url,
+	    m.merchant_category,
+	    m.created_at as merchant_created_at,
+	    i.id as item_id,
+	    i.name as item_name,
+	    i.price as item_price,
+	    i.image_url as item_image_url,
+	    i.product_category,
+	    oi.quantity,
+	    i.created_at as item_created_at
+	FROM
+	    orders o
+	JOIN
+	    order_items oi ON o.id = oi.order_id
+	JOIN
+	    items i ON oi.item_id = i.id
+	JOIN
+	    merchants m ON i.merchant_id = m.id
+	WHERE ` + whereClause + `
+	LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
+
+	args = append(args, filter.Limit, filter.Offset)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	orderMap := make(map[string]entities.GetUserOrderResponse)
+	for rows.Next() {
+		var (
+			orderId           string
+			merchantId        string
+			merchantName      string
+			merchantImageUrl  string
+			merchantCategory  string
+			merchantCreatedAt time.Time
+			itemId            string
+			itemName          string
+			itemPrice         int
+			itemImageUrl      string
+			productCategory   string
+			quantity          int
+			itemCreatedAt     time.Time
+		)
+
+		err := rows.Scan(
+			&orderId,
+			&merchantId,
+			&merchantName,
+			&merchantImageUrl,
+			&merchantCategory,
+			&merchantCreatedAt,
+			&itemId,
+			&itemName,
+			&itemPrice,
+			&itemImageUrl,
+			&productCategory,
+			&quantity,
+			&itemCreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		item := entities.ItemResponse{
+			ItemId:          itemId,
+			Name:            itemName,
+			Price:           itemPrice,
+			Quantity:        quantity,
+			ImageUrl:        itemImageUrl,
+			ProductCategory: productCategory,
+			CreatedAt:       itemCreatedAt.Format(time.RFC3339Nano),
+		}
+
+		if order, exists := orderMap[orderId]; exists {
+			order.Orders[0].Items = append(order.Orders[0].Items, item)
+			orderMap[orderId] = order
+		} else {
+			merchant := entities.GetMerchantResponse{
+				MerchantId:       merchantId,
+				Name:             merchantName,
+				ImageUrl:         merchantImageUrl,
+				MerchantCategory: merchantCategory,
+				CreatedAt:        merchantCreatedAt.Format(time.RFC3339Nano),
+			}
+			orderMap[orderId] = entities.GetUserOrderResponse{
+				OrderId: orderId,
+				Orders: []entities.OrderResponse{
+					{
+						Merchant: merchant,
+						Items:    []entities.ItemResponse{item},
+					},
+				},
+			}
+		}
+	}
+
+	var orders []entities.GetUserOrderResponse
+	for _, order := range orderMap {
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
 func getNearbyMerchantConstructWhereQuery(filter entities.GetNearbyMerchantQueries) string {
 	whereSQL := []string{}
 
@@ -107,4 +315,30 @@ func getNearbyMerchantConstructWhereQuery(filter entities.GetNearbyMerchantQueri
 	}
 
 	return ""
+}
+
+func getGetUserOrderConstructWhereQuery(filter entities.GetUserOrderQueries) (string, []interface{}) {
+	whereSQL := []string{"o.user_id = $1", "o.status = 'ordered'"}
+	args := []interface{}{filter.UserId}
+	argIdx := 2
+
+	if filter.MerchantId != "" {
+		whereSQL = append(whereSQL, fmt.Sprintf("m.id = $%d", argIdx))
+		args = append(args, filter.MerchantId)
+		argIdx++
+	}
+
+	if filter.MerchantCategory != "" {
+		whereSQL = append(whereSQL, fmt.Sprintf("m.merchant_category = $%d", argIdx))
+		args = append(args, filter.MerchantCategory)
+		argIdx++
+	}
+
+	if filter.Name != "" {
+		whereSQL = append(whereSQL, fmt.Sprintf("(m.name ILIKE $%d OR i.name ILIKE $%d)", argIdx, argIdx))
+		args = append(args, "%"+filter.Name+"%")
+		argIdx++
+	}
+
+	return strings.Join(whereSQL, " AND "), args
 }

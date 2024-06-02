@@ -1,5 +1,5 @@
 -- Creating the items table
-CREATE TABLE items (
+CREATE TABLE IF NOT EXISTS items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
     name VARCHAR(30) NOT NULL,
@@ -13,8 +13,8 @@ CREATE TABLE items (
 );
 
 -- Index on items for merchant_id, category, and name filtering
-CREATE INDEX idx_items_merchant_id ON items (merchant_id);
-CREATE INDEX idx_items_category ON items (product_category);
-CREATE INDEX idx_items_name ON items (name);
+CREATE INDEX IF NOT EXISTS idx_items_merchant_id ON items (merchant_id);
+CREATE INDEX IF NOT EXISTS idx_items_category ON items (product_category);
+CREATE INDEX IF NOT EXISTS idx_items_name ON items (name);
 
-CREATE INDEX idx_items_merchant_id_name ON items (merchant_id, name);
+CREATE INDEX IF NOT EXISTS idx_items_merchant_id_name ON items (merchant_id, name);

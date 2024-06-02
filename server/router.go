@@ -57,10 +57,10 @@ func registerPurchaseRoute(r *echo.Group, db *pgxpool.Pool) {
 	merchantsGroup := r.Group("/merchants")
 	newRouteWithUserAuth(merchantsGroup, "POST", "nearby/:lat,:long", ctr.GetNearbyMerchant)
 
-	// usersGroup := r.Group("/users")
-	// newRouteWithUserAuth(usersGroup, "GET", "/estimate", ctr.EstimatePurchase)
-	// newRouteWithUserAuth(usersGroup, "POST", "/orders", ctr.PlaceOrder)
-	// newRouteWithUserAuth(usersGroup, "GET", "/orders", ctr.GetOrder)
+	usersGroup := r.Group("/users")
+	newRouteWithUserAuth(usersGroup, "POST", "/estimate", ctr.EstimateOrder)
+	newRouteWithUserAuth(usersGroup, "POST", "/orders", ctr.PlaceOrder)
+	newRouteWithUserAuth(usersGroup, "GET", "/orders", ctr.GetOrder)
 }
 
 func registerImageRoute(r *echo.Group, config configs.Config) {

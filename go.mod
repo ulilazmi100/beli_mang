@@ -3,6 +3,7 @@ module beli_mang
 go 1.22.3
 
 require (
+	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.27.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.27.16 // indirect

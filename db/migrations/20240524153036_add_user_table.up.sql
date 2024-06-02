@@ -1,8 +1,8 @@
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
--- Creating the admins table
-CREATE TABLE users (
+-- Creating the users table
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(30) NOT NULL,
     password VARCHAR(30) NOT NULL,
@@ -12,4 +12,4 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_users_role ON users (role);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);

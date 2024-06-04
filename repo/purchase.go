@@ -13,7 +13,7 @@ import (
 )
 
 type PurchaseRepo interface {
-	GetNearbyMerchants(ctx context.Context, filter entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, error)
+	GetNearbyMerchants(ctx context.Context, filter entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, int, error)
 	GetMerchantLocations(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) ([]entities.RoutePoint, error)
 	GetTotalItemsPrice(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) (int, error)
 	SaveOrderEstimation(ctx context.Context, order entities.OrderInfo) (string, error)
@@ -30,10 +30,11 @@ func NewPurchaseRepo(db *pgxpool.Pool) PurchaseRepo {
 	return &purchaseRepo{db}
 }
 
-func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, error) {
+func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, int, error) {
 	var merchants []entities.GetNearbyMerchantResponse
+	var totalCount int
 
-	query := "SELECT id, name, merchant_category, image_url, latitude, longitude, created_at FROM merchants"
+	query := "SELECT id, name, merchant_category, image_url, latitude, longitude, created_at, count(*) OVER() AS total_count FROM merchants"
 
 	query = `
     SELECT id, name, merchant_category, image_url, latitude, longitude, created_at,
@@ -51,15 +52,15 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 
 	rows, err := r.db.Query(ctx, query, filter.Latitude, filter.Longitude, filter.Limit, filter.Offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for rows.Next() {
 		merchant := entities.GetNearbyMerchantResponse{}
 		var createdAt time.Time
-		err := rows.Scan(&merchant.Merchant.MerchantId, &merchant.Merchant.Name, &merchant.Merchant.MerchantCategory, &merchant.Merchant.ImageUrl, &merchant.Merchant.Location.Latitude, &merchant.Merchant.Location.Longitude, &createdAt)
+		err := rows.Scan(&merchant.Merchant.MerchantId, &merchant.Merchant.Name, &merchant.Merchant.MerchantCategory, &merchant.Merchant.ImageUrl, &merchant.Merchant.Location.Latitude, &merchant.Merchant.Location.Longitude, &createdAt, &totalCount)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		merchant.Merchant.CreatedAt = createdAt.Format(time.RFC3339Nano)
 
@@ -68,18 +69,18 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 
 		// getItemsQuery += " ORDER BY created_at DESC"
 
-		rows, err := r.db.Query(ctx, getItemsQuery, merchant.Merchant.MerchantId)
+		item_rows, err := r.db.Query(ctx, getItemsQuery, merchant.Merchant.MerchantId)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
-		for rows.Next() {
+		for item_rows.Next() {
 			item := entities.GetItemResponse{}
 			var createdAtItem time.Time
 
-			err := rows.Scan(&item.ItemId, &item.Name, &item.ProductCategory, &item.Price, &item.ImageUrl, &createdAtItem)
+			err := item_rows.Scan(&item.ItemId, &item.Name, &item.ProductCategory, &item.Price, &item.ImageUrl, &createdAtItem)
 			if err != nil {
-				return nil, err
+				return nil, 0, err
 			}
 
 			item.CreatedAt = createdAtItem.Format(time.RFC3339Nano)
@@ -90,7 +91,7 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 		merchants = append(merchants, merchant)
 	}
 
-	return merchants, nil
+	return merchants, totalCount, nil
 }
 
 func (r *purchaseRepo) GetMerchantLocations(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) ([]entities.RoutePoint, error) {
@@ -296,14 +297,18 @@ func (r *purchaseRepo) GetUserOrders(ctx context.Context, filter entities.GetUse
 func getNearbyMerchantConstructWhereQuery(filter entities.GetNearbyMerchantQueries) string {
 	whereSQL := []string{}
 
+	err := validation.Validate(&filter.MerchantCategory, validation.In("SmallRestaurant", "MediumRestaurant", "LargeRestaurant",
+		"MerchandiseRestaurant", "BoothKiosk", "ConvenienceStore"))
+	if err != nil {
+		filter.MerchantCategory = "" // Reset the category if it's invalid
+	}
+
 	if filter.MerchantId != "" {
 		whereSQL = append(whereSQL, " id = '"+filter.MerchantId+"'")
 	}
 
-	if validation.Validate(&filter.MerchantCategory,
-		validation.In("SmallRestaurant", "MediumRestaurant", "LargeRestaurant", "MerchandiseRestaurant", "BoothKiosk", "ConvenienceStore"),
-	) == nil {
-		whereSQL = append(whereSQL, " purchase_category = '"+filter.MerchantCategory+"'")
+	if filter.MerchantCategory != "" {
+		whereSQL = append(whereSQL, " merchant_category = '"+filter.MerchantCategory+"'")
 	}
 
 	if filter.Name != "" {
@@ -321,6 +326,12 @@ func getGetUserOrderConstructWhereQuery(filter entities.GetUserOrderQueries) (st
 	whereSQL := []string{"o.user_id = $1", "o.status = 'ordered'"}
 	args := []interface{}{filter.UserId}
 	argIdx := 2
+
+	err := validation.Validate(&filter.MerchantCategory, validation.In("SmallRestaurant", "MediumRestaurant", "LargeRestaurant",
+		"MerchandiseRestaurant", "BoothKiosk", "ConvenienceStore"))
+	if err != nil {
+		filter.MerchantCategory = "" // Reset the category if it's invalid
+	}
 
 	if filter.MerchantId != "" {
 		whereSQL = append(whereSQL, fmt.Sprintf("m.id = $%d", argIdx))

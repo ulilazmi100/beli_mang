@@ -13,9 +13,9 @@ import (
 type MerchantRepo interface {
 	GetMerchant(ctx context.Context, merchantId string) (string, error)
 	CreateMerchant(ctx context.Context, merchant *entities.MerchantRegistrationPayload) (string, error)
-	GetMerchants(ctx context.Context, filter entities.GetMerchantQueries) ([]entities.GetMerchantResponse, error)
+	GetMerchants(ctx context.Context, filter entities.GetMerchantQueries) ([]entities.GetMerchantResponse, int, error)
 	CreateItem(ctx context.Context, item *entities.ItemRegistrationPayload) (string, error)
-	GetItem(ctx context.Context, filter entities.GetItemQueries) ([]entities.GetItemResponse, error)
+	GetItem(ctx context.Context, filter entities.GetItemQueries) ([]entities.GetItemResponse, int, error)
 }
 
 type merchantRepo struct {
@@ -52,9 +52,10 @@ func (r *merchantRepo) CreateMerchant(ctx context.Context, merchant *entities.Me
 	return id, nil
 }
 
-func (r *merchantRepo) GetMerchants(ctx context.Context, filter entities.GetMerchantQueries) ([]entities.GetMerchantResponse, error) {
+func (r *merchantRepo) GetMerchants(ctx context.Context, filter entities.GetMerchantQueries) ([]entities.GetMerchantResponse, int, error) {
 	var merchants []entities.GetMerchantResponse
 	var createdAt time.Time
+	var totalCount int
 	query := "SELECT id, name, merchant_category, image_url, latitude, longitude, created_at FROM merchants"
 
 	query += getMerchantConstructWhereQuery(filter)
@@ -73,20 +74,20 @@ func (r *merchantRepo) GetMerchants(ctx context.Context, filter entities.GetMerc
 
 	rows, err := r.db.Query(ctx, query, filter.Limit, filter.Offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for rows.Next() {
 		merchant := entities.GetMerchantResponse{}
 		err := rows.Scan(&merchant.MerchantId, &merchant.Name, &merchant.MerchantCategory, &merchant.ImageUrl, &merchant.Location.Latitude, &merchant.Location.Longitude, &createdAt)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		merchant.CreatedAt = createdAt.Format(time.RFC3339Nano)
 		merchants = append(merchants, merchant)
 	}
 
-	return merchants, nil
+	return merchants, totalCount, nil
 }
 
 func (r *merchantRepo) CreateItem(ctx context.Context, item *entities.ItemRegistrationPayload) (string, error) {
@@ -102,11 +103,11 @@ func (r *merchantRepo) CreateItem(ctx context.Context, item *entities.ItemRegist
 	return id, nil
 }
 
-func (r *merchantRepo) GetItem(ctx context.Context, filter entities.GetItemQueries) ([]entities.GetItemResponse, error) {
+func (r *merchantRepo) GetItem(ctx context.Context, filter entities.GetItemQueries) ([]entities.GetItemResponse, int, error) {
 	var items []entities.GetItemResponse
 	var createdAt time.Time
-
-	query := "SELECT id, name, product_category, price, image_url, created_at FROM items"
+	var totalCount int
+	query := "SELECT id, name, product_category, price, image_url, created_at, count(*) OVER() AS total_count FROM items"
 
 	query += getItemConstructWhereQuery(filter)
 
@@ -124,15 +125,15 @@ func (r *merchantRepo) GetItem(ctx context.Context, filter entities.GetItemQueri
 
 	rows, err := r.db.Query(ctx, query, filter.Limit, filter.Offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	for rows.Next() {
 		item := entities.GetItemResponse{}
 
-		err := rows.Scan(&item.ItemId, &item.Name, &item.ProductCategory, &item.Price, &item.ImageUrl, &createdAt)
+		err := rows.Scan(&item.ItemId, &item.Name, &item.ProductCategory, &item.Price, &item.ImageUrl, &createdAt, &totalCount)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		item.CreatedAt = createdAt.Format(time.RFC3339Nano)
@@ -140,19 +141,23 @@ func (r *merchantRepo) GetItem(ctx context.Context, filter entities.GetItemQueri
 		items = append(items, item)
 	}
 
-	return items, nil
+	return items, totalCount, nil
 }
 
 func getMerchantConstructWhereQuery(filter entities.GetMerchantQueries) string {
 	whereSQL := []string{}
 
+	err := validation.Validate(&filter.MerchantCategory, validation.In("SmallRestaurant", "MediumRestaurant", "LargeRestaurant",
+		"MerchandiseRestaurant", "BoothKiosk", "ConvenienceStore"))
+	if err != nil {
+		filter.MerchantCategory = "" // Reset the category if it's invalid
+	}
+
 	if filter.MerchantId != "" {
 		whereSQL = append(whereSQL, " id = '"+filter.MerchantId+"'")
 	}
 
-	if validation.Validate(&filter.MerchantCategory,
-		validation.In("SmallRestaurant", "MediumRestaurant", "LargeRestaurant", "MerchandiseRestaurant", "BoothKiosk", "ConvenienceStore"),
-	) == nil {
+	if filter.MerchantCategory != "" {
 		whereSQL = append(whereSQL, " merchant_category = '"+filter.MerchantCategory+"'")
 	}
 
@@ -170,15 +175,20 @@ func getMerchantConstructWhereQuery(filter entities.GetMerchantQueries) string {
 func getItemConstructWhereQuery(filter entities.GetItemQueries) string {
 	whereSQL := []string{}
 
+	// Validate MerchantCategory using Ozzo validation
+
+	err := validation.Validate(&filter.ProductCategory, validation.In("Beverage", "Food", "Snack", "Condiments", "Additions"))
+	if err != nil {
+		filter.ProductCategory = "" // Reset the category if it's invalid
+	}
+
 	whereSQL = append(whereSQL, " merchant_id = '"+filter.MerchantId+"'")
 
 	if filter.ItemId != "" {
 		whereSQL = append(whereSQL, " id = '"+filter.ItemId+"'")
 	}
 
-	if validation.Validate(&filter.ProductCategory,
-		validation.In("Beverage", "Food", "Snack", "Condiments", "Additions"),
-	) == nil {
+	if filter.ProductCategory != "" {
 		whereSQL = append(whereSQL, " product_category = '"+filter.ProductCategory+"'")
 	}
 

@@ -11,7 +11,7 @@ import (
 )
 
 type PurchaseSvc interface {
-	GetNearbyMerchant(ctx context.Context, getNearbyMerchantQueries entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, error)
+	GetNearbyMerchant(ctx context.Context, getNearbyMerchantQueries entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, int, error)
 	GetOrderEstimation(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, userId string) (entities.GetEstimateResponse, error)
 	PlaceOrder(ctx context.Context, placeOrderPayload entities.PlaceOrderPayload) (entities.PlaceOrderResponse, error)
 	GetOrder(ctx context.Context, getUserOrderQueries entities.GetUserOrderQueries) ([]entities.GetUserOrderResponse, error)
@@ -25,17 +25,17 @@ func NewPurchaseSvc(repo repo.PurchaseRepo) PurchaseSvc {
 	return &purchaseSvc{repo}
 }
 
-func (s *purchaseSvc) GetNearbyMerchant(ctx context.Context, getNearbyMerchantQueries entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, error) {
+func (s *purchaseSvc) GetNearbyMerchant(ctx context.Context, getNearbyMerchantQueries entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, int, error) {
 
-	merchants, err := s.repo.GetNearbyMerchants(ctx, getNearbyMerchantQueries)
+	merchants, totalCount, err := s.repo.GetNearbyMerchants(ctx, getNearbyMerchantQueries)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return []entities.GetNearbyMerchantResponse{}, nil
+			return []entities.GetNearbyMerchantResponse{}, 0, nil
 		}
-		return []entities.GetNearbyMerchantResponse{}, err
+		return []entities.GetNearbyMerchantResponse{}, 0, err
 	}
 
-	return merchants, nil
+	return merchants, totalCount, nil
 }
 
 func (s *purchaseSvc) GetOrderEstimation(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, userId string) (entities.GetEstimateResponse, error) {

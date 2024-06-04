@@ -23,7 +23,7 @@ type registerItemResponse struct {
 
 type getResponse struct {
 	Data     interface{} `json:"data"`
-	Metadata metadata    `json:"metadata"`
+	Metadata metadata    `json:"meta"`
 }
 
 type metadata struct {
@@ -53,7 +53,6 @@ func (c *MerchantController) RegisterMerchant(ctx echo.Context) error {
 }
 
 func (c *MerchantController) GetMerchant(ctx echo.Context) error {
-	var total int
 	var merchantQuery entities.GetMerchantQueries
 	if err := ctx.Bind(&merchantQuery); err != nil {
 		return responses.NewBadRequestError(err.Error())
@@ -66,7 +65,7 @@ func (c *MerchantController) GetMerchant(ctx echo.Context) error {
 	if merchantQuery.Limit < 0 || merchantQuery.Offset < 0 {
 		return responses.NewBadRequestError("invalid query param")
 	}
-	resp, err := c.svc.GetMerchant(ctx.Request().Context(), merchantQuery)
+	resp, total, err := c.svc.GetMerchant(ctx.Request().Context(), merchantQuery)
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,7 @@ func (c *MerchantController) GetMerchant(ctx echo.Context) error {
 			Metadata: metadata{
 				Limit:  merchantQuery.Limit,
 				Offset: merchantQuery.Offset,
-				Total:  total,
+				Total:  0,
 			},
 		})
 	}
@@ -110,7 +109,6 @@ func (c *MerchantController) RegisterItem(ctx echo.Context) error {
 }
 
 func (c *MerchantController) GetItem(ctx echo.Context) error {
-	var total int
 	var itemQuery entities.GetItemQueries
 
 	if err := ctx.Bind(&itemQuery); err != nil {
@@ -127,7 +125,7 @@ func (c *MerchantController) GetItem(ctx echo.Context) error {
 		return responses.NewBadRequestError("invalid query param")
 	}
 
-	resp, err := c.svc.GetItem(ctx.Request().Context(), itemQuery)
+	resp, total, err := c.svc.GetItem(ctx.Request().Context(), itemQuery)
 	if err != nil {
 		return err
 	}
@@ -138,7 +136,7 @@ func (c *MerchantController) GetItem(ctx echo.Context) error {
 			Metadata: metadata{
 				Limit:  itemQuery.Limit,
 				Offset: itemQuery.Offset,
-				Total:  total,
+				Total:  0,
 			},
 		})
 	}

@@ -48,19 +48,29 @@ func (c *PurchaseController) GetNearbyMerchant(ctx echo.Context) error {
 	if merchantQuery.Limit < 0 || merchantQuery.Offset < 0 {
 		return responses.NewBadRequestError("invalid query param")
 	}
-	resp, err := c.svc.GetNearbyMerchant(ctx.Request().Context(), merchantQuery)
+	resp, total, err := c.svc.GetNearbyMerchant(ctx.Request().Context(), merchantQuery)
 	if err != nil {
 		return err
 	}
 
 	if len(resp) == 0 {
-		return ctx.JSON(http.StatusOK, simpleResponse{
+		return ctx.JSON(http.StatusOK, getResponse{
 			Data: []interface{}{},
+			Metadata: metadata{
+				Limit:  merchantQuery.Limit,
+				Offset: merchantQuery.Offset,
+				Total:  0,
+			},
 		})
 	}
 
-	return ctx.JSON(http.StatusOK, simpleResponse{
+	return ctx.JSON(http.StatusOK, getResponse{
 		Data: resp,
+		Metadata: metadata{
+			Limit:  merchantQuery.Limit,
+			Offset: merchantQuery.Offset,
+			Total:  total,
+		},
 	})
 }
 

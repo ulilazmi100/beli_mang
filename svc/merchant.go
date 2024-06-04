@@ -11,9 +11,9 @@ import (
 
 type MerchantSvc interface {
 	RegisterMerchant(ctx context.Context, newMerchant entities.MerchantRegistrationPayload) (string, error)
-	GetMerchant(ctx context.Context, getMerchantQueries entities.GetMerchantQueries) ([]entities.GetMerchantResponse, error)
+	GetMerchant(ctx context.Context, getMerchantQueries entities.GetMerchantQueries) ([]entities.GetMerchantResponse, int, error)
 	RegisterItem(ctx context.Context, newItem entities.ItemRegistrationPayload) (string, error)
-	GetItem(ctx context.Context, getItemQueries entities.GetItemQueries) ([]entities.GetItemResponse, error)
+	GetItem(ctx context.Context, getItemQueries entities.GetItemQueries) ([]entities.GetItemResponse, int, error)
 }
 
 type merchantSvc struct {
@@ -37,17 +37,17 @@ func (s *merchantSvc) RegisterMerchant(ctx context.Context, newMerchant entities
 	return id, nil
 }
 
-func (s *merchantSvc) GetMerchant(ctx context.Context, getMerchantQueries entities.GetMerchantQueries) ([]entities.GetMerchantResponse, error) {
+func (s *merchantSvc) GetMerchant(ctx context.Context, getMerchantQueries entities.GetMerchantQueries) ([]entities.GetMerchantResponse, int, error) {
 
-	merchants, err := s.repo.GetMerchants(ctx, getMerchantQueries)
+	merchants, totalCount, err := s.repo.GetMerchants(ctx, getMerchantQueries)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return []entities.GetMerchantResponse{}, nil
+			return []entities.GetMerchantResponse{}, 0, nil
 		}
-		return nil, err
+		return nil, 0, err
 	}
 
-	return merchants, nil
+	return merchants, totalCount, nil
 }
 
 func (s *merchantSvc) RegisterItem(ctx context.Context, newItem entities.ItemRegistrationPayload) (string, error) {
@@ -71,22 +71,22 @@ func (s *merchantSvc) RegisterItem(ctx context.Context, newItem entities.ItemReg
 	return id, nil
 }
 
-func (s *merchantSvc) GetItem(ctx context.Context, getItemQueries entities.GetItemQueries) ([]entities.GetItemResponse, error) {
+func (s *merchantSvc) GetItem(ctx context.Context, getItemQueries entities.GetItemQueries) ([]entities.GetItemResponse, int, error) {
 	_, err := s.repo.GetMerchant(ctx, getItemQueries.MerchantId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return []entities.GetItemResponse{}, responses.NewNotFoundError("merchantId not found")
+			return []entities.GetItemResponse{}, 0, responses.NewNotFoundError("merchantId not found")
 		}
-		return []entities.GetItemResponse{}, err
+		return []entities.GetItemResponse{}, 0, err
 	}
 
-	items, err := s.repo.GetItem(ctx, getItemQueries)
+	items, totalCount, err := s.repo.GetItem(ctx, getItemQueries)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return []entities.GetItemResponse{}, nil
+			return []entities.GetItemResponse{}, 0, nil
 		}
-		return nil, err
+		return nil, 0, err
 	}
 
-	return items, nil
+	return items, totalCount, nil
 }

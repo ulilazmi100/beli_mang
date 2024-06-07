@@ -28,7 +28,7 @@ type RegistrationPayload struct {
 }
 
 type Credential struct {
-	Username string `json:"nip"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
@@ -45,9 +45,9 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-func NewUser(nip, name, password string) *User {
+func NewUser(username, name, password string) *User {
 	u := &User{
-		Username: nip,
+		Username: username,
 		Email:    name,
 		Password: password,
 	}

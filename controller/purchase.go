@@ -6,6 +6,7 @@ import (
 	"beli_mang/svc"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -31,14 +32,20 @@ func (c *PurchaseController) GetNearbyMerchant(ctx echo.Context) error {
 
 	var err error
 
-	merchantQuery.Latitude, err = strconv.ParseFloat(ctx.Param("lat"), 64)
-	if err != nil {
-		return responses.NewBadRequestError(err.Error())
+	latlong := ctx.Param("latlong")
+	parts := strings.Split(latlong, ",")
+	if len(parts) != 2 {
+		return responses.NewBadRequestError("Invalid latlong format")
 	}
 
-	merchantQuery.Latitude, err = strconv.ParseFloat(ctx.Param("long"), 64)
+	merchantQuery.Latitude, err = strconv.ParseFloat(parts[0], 64)
 	if err != nil {
-		return responses.NewBadRequestError(err.Error())
+		return responses.NewBadRequestError("Invalid latitude")
+	}
+
+	merchantQuery.Longitude, err = strconv.ParseFloat(parts[1], 64)
+	if err != nil {
+		return responses.NewBadRequestError("Invalid longitude")
 	}
 
 	if merchantQuery.Limit == 0 {

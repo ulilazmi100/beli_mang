@@ -34,21 +34,20 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 	var merchants []entities.GetNearbyMerchantResponse
 	var totalCount int
 
-	query := "SELECT id, name, merchant_category, image_url, latitude, longitude, created_at, count(*) OVER() AS total_count FROM merchants"
-
-	query = `
-    SELECT id, name, merchant_category, image_url, latitude, longitude, created_at,
+	var distance float64
+	query := `
+    SELECT id, name, merchant_category, image_url, latitude, longitude, created_at, count(*) OVER() AS total_count,
         (acos(
             cos(radians($1)) * cos(radians(latitude)) *
             cos(radians(longitude) - radians($2)) +
             sin(radians($1)) * sin(radians(latitude))
         )) AS distance
-    FROM merchants
-    ORDER BY distance;` //No need for earth constant because they all would be multiplied with the same constant
+    FROM merchants` //No need for earth constant because they all would be multiplied with the same constant
 
 	query += getNearbyMerchantConstructWhereQuery(filter)
 
-	query += " limit $3 offset $4"
+	query += " ORDER BY distance"
+	query += " LIMIT $3 OFFSET $4"
 
 	rows, err := r.db.Query(ctx, query, filter.Latitude, filter.Longitude, filter.Limit, filter.Offset)
 	if err != nil {
@@ -58,7 +57,7 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 	for rows.Next() {
 		merchant := entities.GetNearbyMerchantResponse{}
 		var createdAt time.Time
-		err := rows.Scan(&merchant.Merchant.MerchantId, &merchant.Merchant.Name, &merchant.Merchant.MerchantCategory, &merchant.Merchant.ImageUrl, &merchant.Merchant.Location.Latitude, &merchant.Merchant.Location.Longitude, &createdAt, &totalCount)
+		err := rows.Scan(&merchant.Merchant.MerchantId, &merchant.Merchant.Name, &merchant.Merchant.MerchantCategory, &merchant.Merchant.ImageUrl, &merchant.Merchant.Location.Latitude, &merchant.Merchant.Location.Longitude, &createdAt, &totalCount, &distance)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -86,6 +85,7 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 			item.CreatedAt = createdAtItem.Format(time.RFC3339Nano)
 
 			merchant.Items = append(merchant.Items, item)
+
 		}
 
 		merchants = append(merchants, merchant)

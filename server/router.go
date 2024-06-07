@@ -22,7 +22,9 @@ func (s *Server) RegisterRoute(config configs.Config) {
 	registerAdminRoute(mainRoute, s.dbPool)
 	registerUserRoute(mainRoute, s.dbPool)
 	registerMerchantRoute(mainRoute, s.dbPool)
+	registerPurchaseRoute(mainRoute, s.dbPool)
 	registerImageRoute(mainRoute, config)
+
 }
 
 func registerAdminRoute(r *echo.Group, db *pgxpool.Pool) {
@@ -37,7 +39,7 @@ func registerUserRoute(r *echo.Group, db *pgxpool.Pool) {
 	ctr := controller.NewUserController(svc.NewUserSvc(repo.NewUserRepo(db)))
 
 	user := r.Group("/users")
-	newRouteWithAdminAuth(user, "POST", "/register", ctr.UserRegister)
+	newRoute(user, "POST", "/register", ctr.UserRegister)
 	newRoute(user, "POST", "/login", ctr.UserLogin)
 }
 
@@ -55,7 +57,7 @@ func registerPurchaseRoute(r *echo.Group, db *pgxpool.Pool) {
 	ctr := controller.NewPurchaseController(svc.NewPurchaseSvc(repo.NewPurchaseRepo(db)))
 
 	merchantsGroup := r.Group("/merchants")
-	newRouteWithUserAuth(merchantsGroup, "POST", "nearby/:lat,:long", ctr.GetNearbyMerchant)
+	newRouteWithUserAuth(merchantsGroup, "GET", "/nearby/:latlong", ctr.GetNearbyMerchant)
 
 	usersGroup := r.Group("/users")
 	newRouteWithUserAuth(usersGroup, "POST", "/estimate", ctr.EstimateOrder)

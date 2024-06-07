@@ -57,7 +57,7 @@ func (u *ItemRegistrationPayload) Validate() error {
 			validation.By(ValidateImageURL),
 		),
 		validation.Field(&u.Price,
-			validation.Required.Error("latitude is required"),
+			validation.Required.Error("price is required"),
 			validation.Min(1).Error("price min 1"),
 		),
 	)

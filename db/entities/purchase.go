@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
 type GetNearbyMerchantQueries struct {
@@ -96,11 +95,9 @@ type ItemResponse struct {
 
 func (u *GetEstimatePayload) Validate() error {
 	err := validation.ValidateStruct(u,
-		validation.Field(&u.Location.Latitude,
-			validation.Required.Error("user latitude is required"),
-		),
-		validation.Field(&u.Location.Longitude,
-			validation.Required.Error("user longitude is required"),
+		validation.Field(&u.Location,
+			validation.Required.Error("location is required"),
+			validation.By(ValidateLocation),
 		),
 		validation.Field(&u.Orders, validation.Required.Error("orders are required"),
 			validation.Each(validation.WithContext(validateOrder))),
@@ -134,7 +131,7 @@ func validateOrder(ctx context.Context, value interface{}) error {
 	err := validation.ValidateStruct(&order,
 		validation.Field(&order.MerchantId,
 			validation.Required.Error("merchantId is required"),
-			is.PrintableASCII.Error("merchantId must be a string"),
+			validation.By(ValidateUUID),
 		),
 		validation.Field(&order.Items, validation.Required.Error("items are required"),
 			validation.Each(validation.WithContext(validateOrderItem))),
@@ -152,7 +149,7 @@ func validateOrderItem(ctx context.Context, value interface{}) error {
 	return validation.ValidateStruct(&item,
 		validation.Field(&item.ItemId,
 			validation.Required.Error("itemId is required"),
-			is.PrintableASCII.Error("itemId must be a string"),
+			validation.By(ValidateUUID),
 		),
 		validation.Field(&item.Quantity,
 			validation.Required.Error("quantity is required"),

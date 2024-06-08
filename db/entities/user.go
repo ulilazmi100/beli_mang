@@ -59,10 +59,11 @@ func (u *Credential) Validate() error {
 	err := validation.ValidateStruct(u,
 		validation.Field(&u.Username,
 			validation.Required.Error("username is required"),
+			validation.Length(5, 30).Error("username must be between 5 and 30 characters"),
 		),
 		validation.Field(&u.Password,
 			validation.Required.Error("password is required"),
-			validation.Length(5, 33).Error("password must be between 5 and 33 characters"),
+			validation.Length(5, 30).Error("password must be between 5 and 30 characters"),
 		),
 	)
 
@@ -106,6 +107,18 @@ func ValidateImageURL(value any) error {
 	rgx := regexp.MustCompile(pattern)
 	if !rgx.MatchString(url) {
 		return errors.New("invalid image URL format")
+	}
+
+	return nil
+}
+
+func ValidateUUID(value any) error {
+	uuid, ok := value.(string)
+	if !ok {
+		return errors.New("parse error")
+	}
+	if !IsValidUUID(uuid) {
+		return errors.New("invalid UUID")
 	}
 
 	return nil

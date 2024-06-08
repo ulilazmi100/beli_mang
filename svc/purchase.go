@@ -6,6 +6,7 @@ import (
 	"beli_mang/responses"
 	"beli_mang/utils"
 	"context"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -40,6 +41,9 @@ func (s *purchaseSvc) GetNearbyMerchant(ctx context.Context, getNearbyMerchantQu
 
 func (s *purchaseSvc) GetOrderEstimation(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, userId string) (entities.GetEstimateResponse, error) {
 	if err := getEstimatePayload.Validate(); err != nil {
+		if strings.Contains(err.Error(), "invalid UUID") {
+			return entities.GetEstimateResponse{}, responses.NewNotFoundError(err.Error())
+		}
 		return entities.GetEstimateResponse{}, responses.NewBadRequestError(err.Error())
 	}
 

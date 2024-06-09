@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -154,17 +155,30 @@ func (r *purchaseRepo) SaveOrderEstimation(ctx context.Context, order entities.O
 }
 
 func (r *purchaseRepo) SaveOrderItems(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, orderId string) error {
-	//TODO: Asynchronize SaveOrderItems
-
 	statement := "INSERT INTO order_items (order_id, item_id, quantity) VALUES ($1, $2, $3)"
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(getEstimatePayload.Orders))
 
 	for _, order := range getEstimatePayload.Orders {
 		for _, item := range order.Items {
+			wg.Add(1)
+			go func(orderId string, item entities.OrderItem) {
+				defer wg.Done()
 
-			_, err := r.db.Exec(ctx, statement, orderId, item.ItemId, item.Quantity)
-			if err != nil {
-				return err
-			}
+				_, err := r.db.Exec(ctx, statement, orderId, item.ItemId, item.Quantity)
+				if err != nil {
+					errChan <- err
+				}
+			}(orderId, item)
+		}
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			return err
 		}
 	}
 

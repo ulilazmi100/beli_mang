@@ -1,0 +1,74 @@
+name: AWS ECR push
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Determine image version
+      id: determine-version
+      run: |
+        if [ ! -z "${{ github.event.release.tag_name }}" ]; then
+          echo "Image version from release tag: ${{ github.event.release.tag_name }}"
+          echo "::set-output name=version::${{ github.event.release.tag_name }}"
+        else
+          BRANCH=$(echo ${GITHUB_REF#refs/heads/} | tr / -)
+          COMMIT_SHA=${GITHUB_SHA::7}
+          echo "Image version from branch and commit: $BRANCH-$COMMIT_SHA"
+          echo "::set-output name=version::$BRANCH-$COMMIT_SHA"
+        fi
+
+    - name: Build, tag, and push the image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: m_ulil_azmi-repository
+        IMAGE_TAG: ${{ steps.determine-version.outputs.version }}
+      run: |
+        echo "Building the Docker image..."
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG} .
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG} $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+        echo "Deleting latest tag in ECR..."
+        aws ecr batch-delete-image --repository-name $ECR_REPOSITORY --image-ids imageTag=latest || true
+
+        echo "Pushing image to ECR..."
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG}
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:${IMAGE_TAG}"
+        echo "::set-output name=image-latest::$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+    - name: Update ECS service
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: m_ulil_azmi-repository
+        IMAGE_TAG: ${{ steps.determine-version.outputs.version }}
+        CLUSTER_NAME: projectsprint
+        SERVICE_NAME: m_ulil_azmi-service
+      run: |
+        echo "Updating ECS service..."
+        aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment --region ${{ secrets.AWS_REGION }} --output json

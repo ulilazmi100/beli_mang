@@ -27,10 +27,12 @@ func NewServer(db *pgxpool.Pool) *Server {
 	// Middleware
 	app.Use(middleware.Recover())
 	app.Use(middleware.RequestID())
-	app.Use(middleware.Logger())
+	app.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "method=${method}, uri=${uri}, status=${status}\n",
+	}))
 	app.Use(middleware.CORS())
 	app.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-		Level: 5,
+		Level: 2,
 	}))
 	return &Server{
 		dbPool:    db,

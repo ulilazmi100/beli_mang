@@ -172,7 +172,7 @@ func (r *purchaseRepo) SaveOrderItems(ctx context.Context, getEstimatePayload en
 }
 
 func (r *purchaseRepo) PlaceOrder(ctx context.Context, placeOrderPayload entities.PlaceOrderPayload) (pgconn.CommandTag, error) {
-	statement := "UPDATE orders SET status = ordered WHERE id = $1"
+	statement := "UPDATE orders SET status = 'ordered' WHERE id = $1"
 
 	res, err := r.db.Exec(ctx, statement, placeOrderPayload.CalculatedEstimateId)
 

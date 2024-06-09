@@ -140,12 +140,8 @@ func (c *PurchaseController) GetOrder(ctx echo.Context) error {
 	}
 
 	if len(resp) == 0 {
-		return ctx.JSON(http.StatusOK, simpleResponse{
-			Data: []interface{}{},
-		})
+		return ctx.JSON(http.StatusOK, []interface{}{})
 	}
 
-	return ctx.JSON(http.StatusOK, simpleResponse{
-		Data: resp,
-	})
+	return ctx.JSON(http.StatusOK, resp)
 }

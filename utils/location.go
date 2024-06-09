@@ -11,8 +11,8 @@ const deliverySpeed = 40.0 // Speed in km/h
 // Define the area as a constant
 const area = 3.0 // km²
 
-// Calculate the radius for a circle with an area of 3 km²
-var radius = math.Sqrt(area / math.Pi)
+// Calculate the diameter for a circle with an area of 3 km²
+var diameter = 2 * math.Sqrt(area/math.Pi)
 
 // Haversine formula to calculate distance between two points
 func haversine(lat1, lon1, lat2, lon2 float64) (float64, error) {
@@ -45,7 +45,7 @@ func IsWithin3Km2(points []entities.RoutePoint) (bool, error) {
 		if err != nil {
 			return false, responses.NewInternalServerError("Error calculating distance:" + err.Error())
 		}
-		if distance > radius {
+		if distance > diameter {
 			return false, nil
 		}
 	}

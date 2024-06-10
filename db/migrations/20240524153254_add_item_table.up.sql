@@ -1,16 +1,13 @@
 -- Creating the items table
 CREATE TABLE IF NOT EXISTS items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    merchant_id UUID REFERENCES merchants(id) ON DELETE CASCADE,
+    merchant_id UUID,
     name VARCHAR(35) NOT NULL,
-    product_category VARCHAR(30) NOT NULL CHECK (product_category IN (
-        'Beverage', 'Food', 'Snack', 'Condiments', 'Additions'
-    )),
-    price NUMERIC NOT NULL CHECK (price >= 1),
+    product_category VARCHAR(30) NOT NULL,
+    price NUMERIC NOT NULL,
     image_url VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
 -- Index on items for merchant_id, category, and name filtering
 CREATE INDEX IF NOT EXISTS idx_items_merchant_id ON items (merchant_id);

@@ -1,7 +1,7 @@
 -- Creating the orders table
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL,
     total_price NUMERIC NOT NULL,
     estimated_delivery_time_in_minutes NUMERIC NOT NULL,
     status VARCHAR(30) NOT NULL,

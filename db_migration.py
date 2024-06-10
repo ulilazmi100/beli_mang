@@ -21,7 +21,7 @@ def load_env_file(env_file_path):
         raise FileNotFoundError(f"Environment file not found at path: {env_file_path}")
 
 def run_migration(direction, db_type, db_user, db_password, db_host, db_port, db_name, migration_path, verbose):
-    db_uri = f"{db_type}://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+    db_uri = f"{db_type}://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?sslmode=disable"
 
     verbosity = ""
     if verbose:

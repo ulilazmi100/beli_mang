@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(80) NOT NULL,
     email VARCHAR(255) NOT NULL,
     role VARCHAR(15) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);
+-- CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);

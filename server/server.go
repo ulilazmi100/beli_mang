@@ -4,7 +4,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	configs "beli_mang/cfg"
@@ -27,7 +26,6 @@ func NewServer(db *pgxpool.Pool) *Server {
 	validate := validator.New()
 
 	// Middleware
-	app.Use(recover.New())
 	app.Use(logger.New())
 
 	return &Server{

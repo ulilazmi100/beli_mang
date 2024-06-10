@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +30,9 @@ func NewServer(db *pgxpool.Pool) *Server {
 	// Middleware
 	app.Use(recover.New())
 	app.Use(logger.New())
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
+	}))
 
 	return &Server{
 		dbPool:    db,

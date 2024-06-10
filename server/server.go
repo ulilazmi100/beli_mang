@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
@@ -29,17 +27,11 @@ func NewServer(db *pgxpool.Pool) *Server {
 	// Middleware
 	app.Use(middleware.Recover())
 	app.Use(middleware.RequestID())
-	app.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "method=${method}, uri=${uri}, status=${status}\n",
-	}))
+	app.Use(middleware.Logger())
 	app.Use(middleware.CORS())
 	app.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-		Level: 2,
+		Level: 5,
 	}))
-
-	app.Server.ReadTimeout = 10 * time.Second
-	app.Server.WriteTimeout = 10 * time.Second
-	app.Server.IdleTimeout = 30 * time.Second
 
 	return &Server{
 		dbPool:    db,

@@ -2,10 +2,8 @@ package repo
 
 import (
 	"beli_mang/db/entities"
-	"beli_mang/utils"
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -37,24 +35,30 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 	var merchants []entities.GetNearbyMerchantResponse
 	var totalCount int
 
-	// Fetch all merchants without ordering by distance
+	var distance float64
 	query := `
-        SELECT id, name, merchant_category, image_url, latitude, longitude, created_at
-        FROM merchants` + getNearbyMerchantConstructWhereQuery(filter)
+    SELECT id, name, merchant_category, image_url, latitude, longitude, created_at, count(*) OVER() AS total_count,
+        (acos(
+            cos(radians($1)) * cos(radians(latitude)) *
+            cos(radians(longitude) - radians($2)) +
+            sin(radians($1)) * sin(radians(latitude))
+        )) AS distance
+    FROM merchants` //No need for earth constant because they all would be multiplied with the same constant
 
-	rows, err := r.db.Query(ctx, query)
+	query += getNearbyMerchantConstructWhereQuery(filter)
+
+	query += " ORDER BY distance"
+	query += " LIMIT $3 OFFSET $4"
+
+	rows, err := r.db.Query(ctx, query, filter.Latitude, filter.Longitude, filter.Limit, filter.Offset)
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
 
 	for rows.Next() {
 		merchant := entities.GetNearbyMerchantResponse{}
 		var createdAt time.Time
-
-		// Scan merchant details
-		err := rows.Scan(&merchant.Merchant.MerchantId, &merchant.Merchant.Name, &merchant.Merchant.MerchantCategory,
-			&merchant.Merchant.ImageUrl, &merchant.Merchant.Location.Latitude, &merchant.Merchant.Location.Longitude, &createdAt)
+		err := rows.Scan(&merchant.Merchant.MerchantId, &merchant.Merchant.Name, &merchant.Merchant.MerchantCategory, &merchant.Merchant.ImageUrl, &merchant.Merchant.Location.Latitude, &merchant.Merchant.Location.Longitude, &createdAt, &totalCount, &distance)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -79,27 +83,14 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 			}
 
 			item.CreatedAt = createdAtItem.Format(time.RFC3339Nano)
+
+			merchant.Items = append(merchant.Items, item)
+
 		}
 
 		merchants = append(merchants, merchant)
 	}
 
-	// Sort merchants by nearest distance using Haversine formula
-	sort.SliceStable(merchants, func(i, j int) bool {
-		distI, _ := utils.Haversine(filter.Latitude, filter.Longitude, merchants[i].Merchant.Location.Latitude, merchants[i].Merchant.Location.Longitude)
-		distJ, _ := utils.Haversine(filter.Latitude, filter.Longitude, merchants[j].Merchant.Location.Latitude, merchants[j].Merchant.Location.Longitude)
-		return distI < distJ
-	})
-
-	// Apply limit and offset
-	start := filter.Offset
-	end := start + filter.Limit
-	if end > len(merchants) {
-		end = len(merchants)
-	}
-	merchants = merchants[start:end]
-
-	totalCount = len(merchants)
 	return merchants, totalCount, nil
 }
 

@@ -26,7 +26,12 @@ func NewServer(db *pgxpool.Pool) *Server {
 
 	// Middleware
 	app.Use(middleware.Recover())
+	app.Use(middleware.RequestID())
 	app.Use(middleware.Logger())
+	app.Use(middleware.CORS())
+	app.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Level: 5,
+	}))
 
 	return &Server{
 		dbPool:    db,

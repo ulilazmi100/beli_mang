@@ -15,7 +15,7 @@ const area = 3.0 // km²
 var diameter = 2 * math.Sqrt(area/math.Pi)
 
 // Haversine formula to calculate distance between two points
-func haversine(lat1, lon1, lat2, lon2 float64) (float64, error) {
+func Haversine(lat1, lon1, lat2, lon2 float64) (float64, error) {
 	lat1Rad := lat1 * (math.Pi / 180)
 	lon1Rad := lon1 * (math.Pi / 180)
 	lat2Rad := lat2 * (math.Pi / 180)
@@ -41,7 +41,7 @@ func IsWithin3Km2(points []entities.RoutePoint) (bool, error) {
 
 	// Calculate the distance between each point and the ending point
 	for _, point := range points {
-		distance, err := haversine(point.Latitude, point.Longitude, end.Latitude, end.Longitude)
+		distance, err := Haversine(point.Latitude, point.Longitude, end.Latitude, end.Longitude)
 		if err != nil {
 			return false, responses.NewInternalServerError("Error calculating distance:" + err.Error())
 		}
@@ -78,7 +78,7 @@ func NearestNeighborTSP(locations []entities.RoutePoint) ([]int, float64, error)
 
 		for i := range locations {
 			if !visited[i] && i != end {
-				dist, err := haversine(locations[current].Latitude, locations[current].Longitude, locations[i].Latitude, locations[i].Longitude)
+				dist, err := Haversine(locations[current].Latitude, locations[current].Longitude, locations[i].Latitude, locations[i].Longitude)
 				if err != nil {
 					return nil, 0, err
 				}
@@ -99,7 +99,7 @@ func NearestNeighborTSP(locations []entities.RoutePoint) ([]int, float64, error)
 
 	// Add the end location
 	route = append(route, end)
-	finalLegDistance, err := haversine(locations[current].Latitude, locations[current].Longitude, locations[end].Latitude, locations[end].Longitude)
+	finalLegDistance, err := Haversine(locations[current].Latitude, locations[current].Longitude, locations[end].Latitude, locations[end].Longitude)
 	if err != nil {
 		return nil, 0, err
 	}

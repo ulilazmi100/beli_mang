@@ -2,9 +2,12 @@ package server
 
 import (
 	"github.com/go-playground/validator/v10"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 
 	configs "beli_mang/cfg"
 	local_mid "beli_mang/middleware"
@@ -12,25 +15,25 @@ import (
 
 type Server struct {
 	dbPool    *pgxpool.Pool
-	app       *echo.Echo
+	app       *fiber.App
 	validator *validator.Validate
 }
 
 func NewServer(db *pgxpool.Pool) *Server {
-	// Create an Echo instance
-	app := echo.New()
-	app.HTTPErrorHandler = local_mid.ErrorHandler
+	// Create a Fiber instance
+	app := fiber.New(fiber.Config{
+		ErrorHandler: local_mid.ErrorHandler,
+	})
 
 	// Initialize validator
 	validate := validator.New()
 
 	// Middleware
-	app.Use(middleware.Recover())
-	app.Use(middleware.RequestID())
-	app.Use(middleware.Logger())
-	app.Use(middleware.CORS())
-	app.Use(middleware.GzipWithConfig(middleware.GzipConfig{
-		Level: 5,
+	app.Use(recover.New())
+	app.Use(logger.New())
+	app.Use(cors.New())
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
 	}))
 
 	return &Server{
@@ -41,5 +44,5 @@ func NewServer(db *pgxpool.Pool) *Server {
 }
 
 func (s *Server) Run(config configs.Config) {
-	s.app.Logger.Fatal(s.app.Start(":" + config.APPPort))
+	s.app.Listen(":" + config.APPPort)
 }

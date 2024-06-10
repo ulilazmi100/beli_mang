@@ -3,9 +3,8 @@ package controller
 import (
 	"beli_mang/responses"
 	"beli_mang/svc"
-	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 )
 
 type ImageController struct {
@@ -18,13 +17,13 @@ func NewImageController(svc svc.ImageSvc) *ImageController {
 	}
 }
 
-func (c *ImageController) UploadImage(ctx echo.Context) error {
+func (c *ImageController) UploadImage(ctx *fiber.Ctx) error {
 	fileHeader, err := ctx.FormFile("file")
 	if fileHeader == nil {
-		return ctx.JSON(http.StatusBadRequest, responses.NewBadRequestError("file should not be empty"))
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("file should not be empty"))
 	}
 	if err != nil {
-		return ctx.JSON(http.StatusInternalServerError, responses.NewInternalServerError("failed to retrieve file"))
+		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.NewInternalServerError("failed to retrieve file"))
 	}
 
 	url, err := c.svc.UploadImage(fileHeader)
@@ -32,7 +31,7 @@ func (c *ImageController) UploadImage(ctx echo.Context) error {
 		return err
 	}
 
-	return ctx.JSON(http.StatusOK, map[string]interface{}{
+	return ctx.Status(fiber.StatusOK).JSON(map[string]interface{}{
 		"message": "File uploaded successfully",
 		"data": map[string]interface{}{
 			"imageUrl": url,

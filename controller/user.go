@@ -4,9 +4,8 @@ import (
 	"beli_mang/db/entities"
 	"beli_mang/responses"
 	"beli_mang/svc"
-	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 )
 
 type UserController struct {
@@ -30,13 +29,13 @@ type simpleResponse struct {
 	Data    interface{} `json:"data"`
 }
 
-func (c *UserController) AdminRegister(ctx echo.Context) error {
+func (c *UserController) AdminRegister(ctx *fiber.Ctx) error {
 	var newUser entities.RegistrationPayload
-	if err := ctx.Bind(&newUser); err != nil {
-		return responses.NewBadRequestError(err.Error())
+	if err := ctx.BodyParser(&newUser); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
 	}
 
-	accessToken, err := c.svc.AdminRegister(ctx.Request().Context(), newUser)
+	accessToken, err := c.svc.AdminRegister(ctx.Context(), newUser)
 	if err != nil {
 		return err
 	}
@@ -45,13 +44,13 @@ func (c *UserController) AdminRegister(ctx echo.Context) error {
 		AccessToken: accessToken,
 	}
 
-	return ctx.JSON(http.StatusCreated, respData)
+	return ctx.Status(fiber.StatusCreated).JSON(respData)
 }
 
-func (c *UserController) AdminLogin(ctx echo.Context) error {
+func (c *UserController) AdminLogin(ctx *fiber.Ctx) error {
 	var user entities.RegistrationPayload
-	if err := ctx.Bind(&user); err != nil {
-		return responses.NewBadRequestError(err.Error())
+	if err := ctx.BodyParser(&user); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
 	}
 
 	loginPayload := entities.Credential{
@@ -59,7 +58,7 @@ func (c *UserController) AdminLogin(ctx echo.Context) error {
 		Password: user.Password,
 	}
 
-	accessToken, err := c.svc.AdminLogin(ctx.Request().Context(), loginPayload)
+	accessToken, err := c.svc.AdminLogin(ctx.Context(), loginPayload)
 	if err != nil {
 		return err
 	}
@@ -68,16 +67,16 @@ func (c *UserController) AdminLogin(ctx echo.Context) error {
 		AccessToken: accessToken,
 	}
 
-	return ctx.JSON(http.StatusOK, respData)
+	return ctx.Status(fiber.StatusOK).JSON(respData)
 }
 
-func (c *UserController) UserRegister(ctx echo.Context) error {
+func (c *UserController) UserRegister(ctx *fiber.Ctx) error {
 	var newUser entities.RegistrationPayload
-	if err := ctx.Bind(&newUser); err != nil {
-		return responses.NewBadRequestError(err.Error())
+	if err := ctx.BodyParser(&newUser); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
 	}
 
-	accessToken, err := c.svc.UserRegister(ctx.Request().Context(), newUser)
+	accessToken, err := c.svc.UserRegister(ctx.Context(), newUser)
 	if err != nil {
 		return err
 	}
@@ -86,13 +85,13 @@ func (c *UserController) UserRegister(ctx echo.Context) error {
 		AccessToken: accessToken,
 	}
 
-	return ctx.JSON(http.StatusCreated, respData)
+	return ctx.Status(fiber.StatusCreated).JSON(respData)
 }
 
-func (c *UserController) UserLogin(ctx echo.Context) error {
+func (c *UserController) UserLogin(ctx *fiber.Ctx) error {
 	var user entities.RegistrationPayload
-	if err := ctx.Bind(&user); err != nil {
-		return responses.NewBadRequestError(err.Error())
+	if err := ctx.BodyParser(&user); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
 	}
 
 	loginPayload := entities.Credential{
@@ -100,7 +99,7 @@ func (c *UserController) UserLogin(ctx echo.Context) error {
 		Password: user.Password,
 	}
 
-	accessToken, err := c.svc.UserLogin(ctx.Request().Context(), loginPayload)
+	accessToken, err := c.svc.UserLogin(ctx.Context(), loginPayload)
 	if err != nil {
 		return err
 	}
@@ -109,5 +108,5 @@ func (c *UserController) UserLogin(ctx echo.Context) error {
 		AccessToken: accessToken,
 	}
 
-	return ctx.JSON(http.StatusOK, respData)
+	return ctx.Status(fiber.StatusOK).JSON(respData)
 }

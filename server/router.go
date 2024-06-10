@@ -12,8 +12,8 @@ import (
 
 	awsCfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/labstack/echo/v4"
 )
 
 func (s *Server) RegisterRoute(config configs.Config) {
@@ -24,10 +24,9 @@ func (s *Server) RegisterRoute(config configs.Config) {
 	registerMerchantRoute(mainRoute, s.dbPool)
 	registerPurchaseRoute(mainRoute, s.dbPool)
 	registerImageRoute(mainRoute, config)
-
 }
 
-func registerAdminRoute(r *echo.Group, db *pgxpool.Pool) {
+func registerAdminRoute(r fiber.Router, db *pgxpool.Pool) {
 	ctr := controller.NewUserController(svc.NewUserSvc(repo.NewUserRepo(db)))
 
 	adminGroup := r.Group("/admin")
@@ -35,7 +34,7 @@ func registerAdminRoute(r *echo.Group, db *pgxpool.Pool) {
 	newRoute(adminGroup, "POST", "/login", ctr.AdminLogin)
 }
 
-func registerUserRoute(r *echo.Group, db *pgxpool.Pool) {
+func registerUserRoute(r fiber.Router, db *pgxpool.Pool) {
 	ctr := controller.NewUserController(svc.NewUserSvc(repo.NewUserRepo(db)))
 
 	user := r.Group("/users")
@@ -43,7 +42,7 @@ func registerUserRoute(r *echo.Group, db *pgxpool.Pool) {
 	newRoute(user, "POST", "/login", ctr.UserLogin)
 }
 
-func registerMerchantRoute(r *echo.Group, db *pgxpool.Pool) {
+func registerMerchantRoute(r fiber.Router, db *pgxpool.Pool) {
 	ctr := controller.NewMerchantController(svc.NewMerchantSvc(repo.NewMerchantRepo(db)))
 
 	merchantGroup := r.Group("/admin/merchants")
@@ -53,7 +52,7 @@ func registerMerchantRoute(r *echo.Group, db *pgxpool.Pool) {
 	newRouteWithAdminAuth(merchantGroup, "GET", "/:merchantId/items", ctr.GetItem)
 }
 
-func registerPurchaseRoute(r *echo.Group, db *pgxpool.Pool) {
+func registerPurchaseRoute(r fiber.Router, db *pgxpool.Pool) {
 	ctr := controller.NewPurchaseController(svc.NewPurchaseSvc(repo.NewPurchaseRepo(db)))
 
 	merchantsGroup := r.Group("/merchants")
@@ -65,7 +64,7 @@ func registerPurchaseRoute(r *echo.Group, db *pgxpool.Pool) {
 	newRouteWithUserAuth(usersGroup, "GET", "/orders", ctr.GetOrder)
 }
 
-func registerImageRoute(r *echo.Group, config configs.Config) {
+func registerImageRoute(r fiber.Router, config configs.Config) {
 	bucket := config.AWS_S3_BUCKET_NAME
 
 	// Load AWS configuration
@@ -92,18 +91,18 @@ func registerImageRoute(r *echo.Group, config configs.Config) {
 	newRouteWithAdminAuth(r, "POST", "/image", imageController.UploadImage)
 }
 
-func newRoute(router *echo.Group, method, path string, handler echo.HandlerFunc) {
+func newRoute(router fiber.Router, method, path string, handler fiber.Handler) {
 	router.Add(method, path, handler)
 }
 
-func newRouteWithAuth(router *echo.Group, method, path string, handler echo.HandlerFunc) {
-	router.Add(method, path, handler, middleware.Auth)
+func newRouteWithAuth(router fiber.Router, method, path string, handler fiber.Handler) {
+	router.Add(method, path, middleware.Auth, handler)
 }
 
-func newRouteWithAdminAuth(router *echo.Group, method, path string, handler echo.HandlerFunc) {
-	router.Add(method, path, handler, middleware.AdminAuth)
+func newRouteWithAdminAuth(router fiber.Router, method, path string, handler fiber.Handler) {
+	router.Add(method, path, middleware.AdminAuth, handler)
 }
 
-func newRouteWithUserAuth(router *echo.Group, method, path string, handler echo.HandlerFunc) {
-	router.Add(method, path, handler, middleware.UserAuth)
+func newRouteWithUserAuth(router fiber.Router, method, path string, handler fiber.Handler) {
+	router.Add(method, path, middleware.UserAuth, handler)
 }

@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"beli_mang/responses"
 	"beli_mang/svc"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,10 +19,10 @@ func NewImageController(svc svc.ImageSvc) *ImageController {
 func (c *ImageController) UploadImage(ctx *fiber.Ctx) error {
 	fileHeader, err := ctx.FormFile("file")
 	if fileHeader == nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("file should not be empty"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("file should not be empty")
 	}
 	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(responses.NewInternalServerError("failed to retrieve file"))
+		return ctx.Status(fiber.StatusInternalServerError).JSON("failed to retrieve file")
 	}
 
 	url, err := c.svc.UploadImage(fileHeader)

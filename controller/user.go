@@ -2,7 +2,6 @@ package controller
 
 import (
 	"beli_mang/db/entities"
-	"beli_mang/responses"
 	"beli_mang/svc"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,7 +31,7 @@ type simpleResponse struct {
 func (c *UserController) AdminRegister(ctx *fiber.Ctx) error {
 	var newUser entities.RegistrationPayload
 	if err := ctx.BodyParser(&newUser); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	accessToken, err := c.svc.AdminRegister(ctx.Context(), newUser)
@@ -50,7 +49,7 @@ func (c *UserController) AdminRegister(ctx *fiber.Ctx) error {
 func (c *UserController) AdminLogin(ctx *fiber.Ctx) error {
 	var user entities.RegistrationPayload
 	if err := ctx.BodyParser(&user); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	loginPayload := entities.Credential{
@@ -73,7 +72,7 @@ func (c *UserController) AdminLogin(ctx *fiber.Ctx) error {
 func (c *UserController) UserRegister(ctx *fiber.Ctx) error {
 	var newUser entities.RegistrationPayload
 	if err := ctx.BodyParser(&newUser); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	accessToken, err := c.svc.UserRegister(ctx.Context(), newUser)
@@ -91,7 +90,7 @@ func (c *UserController) UserRegister(ctx *fiber.Ctx) error {
 func (c *UserController) UserLogin(ctx *fiber.Ctx) error {
 	var user entities.RegistrationPayload
 	if err := ctx.BodyParser(&user); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	loginPayload := entities.Credential{

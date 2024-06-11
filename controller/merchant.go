@@ -2,7 +2,6 @@ package controller
 
 import (
 	"beli_mang/db/entities"
-	"beli_mang/responses"
 	"beli_mang/svc"
 
 	"github.com/gofiber/fiber/v2"
@@ -38,7 +37,7 @@ func NewMerchantController(svc svc.MerchantSvc) *MerchantController {
 func (c *MerchantController) RegisterMerchant(ctx *fiber.Ctx) error {
 	var newMerchant entities.MerchantRegistrationPayload
 	if err := ctx.BodyParser(&newMerchant); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	id, err := c.svc.RegisterMerchant(ctx.Context(), newMerchant)
@@ -54,7 +53,7 @@ func (c *MerchantController) RegisterMerchant(ctx *fiber.Ctx) error {
 func (c *MerchantController) GetMerchant(ctx *fiber.Ctx) error {
 	var merchantQuery entities.GetMerchantQueries
 	if err := ctx.QueryParser(&merchantQuery); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	if merchantQuery.Limit == 0 {
@@ -62,7 +61,7 @@ func (c *MerchantController) GetMerchant(ctx *fiber.Ctx) error {
 	}
 
 	if merchantQuery.Limit < 0 || merchantQuery.Offset < 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("invalid query param"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("invalid query param")
 	}
 	resp, total, err := c.svc.GetMerchant(ctx.Context(), merchantQuery)
 	if err != nil {
@@ -93,7 +92,7 @@ func (c *MerchantController) GetMerchant(ctx *fiber.Ctx) error {
 func (c *MerchantController) RegisterItem(ctx *fiber.Ctx) error {
 	var newItem entities.ItemRegistrationPayload
 	if err := ctx.BodyParser(&newItem); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 	newItem.MerchantId = ctx.Params("merchantId")
 
@@ -111,7 +110,7 @@ func (c *MerchantController) GetItem(ctx *fiber.Ctx) error {
 	var itemQuery entities.GetItemQueries
 
 	if err := ctx.QueryParser(&itemQuery); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	itemQuery.MerchantId = ctx.Params("merchantId")
@@ -121,7 +120,7 @@ func (c *MerchantController) GetItem(ctx *fiber.Ctx) error {
 	}
 
 	if itemQuery.Limit < 0 || itemQuery.Offset < 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("invalid query param"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("invalid query param")
 	}
 
 	resp, total, err := c.svc.GetItem(ctx.Context(), itemQuery)

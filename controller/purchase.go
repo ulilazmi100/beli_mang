@@ -2,7 +2,6 @@ package controller
 
 import (
 	"beli_mang/db/entities"
-	"beli_mang/responses"
 	"beli_mang/svc"
 	"strconv"
 	"strings"
@@ -26,7 +25,7 @@ func (c *PurchaseController) GetNearbyMerchant(ctx *fiber.Ctx) error {
 
 	var merchantQuery entities.GetNearbyMerchantQueries
 	if err := ctx.QueryParser(&merchantQuery); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	var err error
@@ -34,17 +33,17 @@ func (c *PurchaseController) GetNearbyMerchant(ctx *fiber.Ctx) error {
 	latlong := ctx.Params("latlong")
 	parts := strings.Split(latlong, ",")
 	if len(parts) != 2 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("Invalid latlong format"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("Invalid latlong format")
 	}
 
 	merchantQuery.Latitude, err = strconv.ParseFloat(parts[0], 64)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("Invalid latitude"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("Invalid latitude")
 	}
 
 	merchantQuery.Longitude, err = strconv.ParseFloat(parts[1], 64)
 	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("Invalid longitude"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("Invalid longitude")
 	}
 
 	if merchantQuery.Limit == 0 {
@@ -52,7 +51,7 @@ func (c *PurchaseController) GetNearbyMerchant(ctx *fiber.Ctx) error {
 	}
 
 	if merchantQuery.Limit < 0 || merchantQuery.Offset < 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("invalid query param"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("invalid query param")
 	}
 	resp, total, err := c.svc.GetNearbyMerchant(ctx.Context(), merchantQuery)
 	if err != nil {
@@ -84,7 +83,7 @@ func (c *PurchaseController) EstimateOrder(ctx *fiber.Ctx) error {
 
 	var getEstimatePayload entities.GetEstimatePayload
 	if err := ctx.BodyParser(&getEstimatePayload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	var err error
@@ -101,7 +100,7 @@ func (c *PurchaseController) PlaceOrder(ctx *fiber.Ctx) error {
 
 	var placeOrderPayload entities.PlaceOrderPayload
 	if err := ctx.BodyParser(&placeOrderPayload); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	var err error
@@ -118,7 +117,7 @@ func (c *PurchaseController) GetOrder(ctx *fiber.Ctx) error {
 
 	var getOrderQuery entities.GetUserOrderQueries
 	if err := ctx.QueryParser(&getOrderQuery); err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError(err.Error()))
+		return ctx.Status(fiber.StatusBadRequest).JSON(err.Error())
 	}
 
 	var err error
@@ -128,7 +127,7 @@ func (c *PurchaseController) GetOrder(ctx *fiber.Ctx) error {
 	}
 
 	if getOrderQuery.Limit < 0 || getOrderQuery.Offset < 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(responses.NewBadRequestError("invalid query param"))
+		return ctx.Status(fiber.StatusBadRequest).JSON("invalid query param")
 	}
 
 	getOrderQuery.UserId = ctx.Locals("user_id").(string)

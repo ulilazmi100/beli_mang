@@ -176,41 +176,21 @@ func (r *purchaseRepo) GetMerchantLocations(ctx context.Context, getEstimatePayl
 }
 
 func (r *purchaseRepo) GetTotalItemsPrice(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) (int, error) {
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(getEstimatePayload.Orders))
-	priceChan := make(chan int, len(getEstimatePayload.Orders))
+	//TODO: Asynchronize CheckItemsAvailability
+
+	var totalPrice int
 
 	for _, order := range getEstimatePayload.Orders {
 		for _, item := range order.Items {
-			wg.Add(1)
-			go func(order entities.Order, item entities.OrderItem) {
-				defer wg.Done()
+			var price int
+			query := "SELECT price FROM items WHERE id = $1 AND merchant_id = $2"
 
-				var price int
-				query := "SELECT price FROM items WHERE id = $1 AND merchant_id = $2"
-				err := r.db.QueryRow(ctx, query, item.ItemId, order.MerchantId).Scan(&price)
-				if err != nil {
-					errChan <- err
-					return
-				}
-				priceChan <- (price * item.Quantity)
-			}(order, item)
+			err := r.db.QueryRow(ctx, query, item.ItemId, order.MerchantId).Scan(&price)
+			if err != nil {
+				return 0, err
+			}
+			totalPrice += (price * item.Quantity)
 		}
-	}
-
-	wg.Wait()
-	close(errChan)
-	close(priceChan)
-
-	for err := range errChan {
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	var totalPrice int
-	for price := range priceChan {
-		totalPrice += price
 	}
 
 	return totalPrice, nil

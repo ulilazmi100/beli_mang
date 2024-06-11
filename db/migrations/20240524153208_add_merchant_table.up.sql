@@ -1,7 +1,3 @@
--- Add extensions
-CREATE EXTENSION IF NOT EXISTS cube;
-CREATE EXTENSION IF NOT EXISTS earthdistance;
-
 -- Creating the merchants table
 CREATE TABLE IF NOT EXISTS merchants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -14,7 +10,9 @@ CREATE TABLE IF NOT EXISTS merchants (
 );
 
 -- Creating an index on the merchants table for geolocation searches
-CREATE INDEX idx_ll_to_earth ON merchants USING gist(ll_to_earth(latitude, longitude));
+CREATE INDEX IF NOT EXISTS idx_merchants_location ON merchants USING gist (
+    point(latitude, longitude)
+);
 
 -- Creating additional indices for optimization
 -- Index on merchants for category and name filtering

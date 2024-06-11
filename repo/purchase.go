@@ -38,12 +38,17 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 	var distance float64
 	query := `
     SELECT id, name, merchant_category, image_url, latitude, longitude, created_at, count(*) OVER() AS total_count,
-        (ll_to_earth(latitude, longitude) <-> ll_to_earth($1, $2)) AS distance
-    FROM merchants
-    ` + getNearbyMerchantConstructWhereQuery(filter) + `
-    ORDER BY distance
-    LIMIT $3 OFFSET $4
-`
+        (acos(
+            cos(radians($1)) * cos(radians(latitude)) *
+            cos(radians(longitude) - radians($2)) +
+            sin(radians($1)) * sin(radians(latitude))
+        )) AS distance
+    FROM merchants` //No need for earth constant because they all would be multiplied with the same constant
+
+	query += getNearbyMerchantConstructWhereQuery(filter)
+
+	query += " ORDER BY distance"
+	query += " LIMIT $3 OFFSET $4"
 
 	rows, err := r.db.Query(ctx, query, filter.Latitude, filter.Longitude, filter.Limit, filter.Offset)
 	if err != nil {

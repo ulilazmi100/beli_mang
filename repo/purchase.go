@@ -66,77 +66,151 @@ func (r *purchaseRepo) GetNearbyMerchants(ctx context.Context, filter entities.G
 		}
 		merchant.Merchant.CreatedAt = createdAt.Format(time.RFC3339Nano)
 
-		getItemsQuery := "SELECT id, name, product_category, price, image_url, created_at FROM items WHERE merchant_id = $1"
-
-		// getItemsQuery += " ORDER BY created_at DESC"
-
-		item_rows, err := r.db.Query(ctx, getItemsQuery, merchant.Merchant.MerchantId)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		for item_rows.Next() {
-			item := entities.GetItemResponse{}
-			var createdAtItem time.Time
-
-			err := item_rows.Scan(&item.ItemId, &item.Name, &item.ProductCategory, &item.Price, &item.ImageUrl, &createdAtItem)
-			if err != nil {
-				return nil, 0, err
-			}
-
-			item.CreatedAt = createdAtItem.Format(time.RFC3339Nano)
-
-			merchant.Items = append(merchant.Items, item)
-
-		}
-
 		merchants = append(merchants, merchant)
 	}
 
-	return merchants, totalCount, nil
+	getItemsQuery := "SELECT id, name, product_category, price, image_url, created_at FROM items WHERE merchant_id = $1"
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(merchants))
+	resultsChan := make(chan entities.GetNearbyMerchantResponse, len(merchants))
+
+	for _, merchant := range merchants {
+		wg.Add(1)
+		go func(merchant entities.GetNearbyMerchantResponse) {
+			defer wg.Done()
+
+			itemRows, err := r.db.Query(ctx, getItemsQuery, merchant.Merchant.MerchantId)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			defer itemRows.Close()
+
+			for itemRows.Next() {
+				item := entities.GetItemResponse{}
+				var createdAtItem time.Time
+
+				err := itemRows.Scan(&item.ItemId, &item.Name, &item.ProductCategory, &item.Price, &item.ImageUrl, &createdAtItem)
+				if err != nil {
+					errChan <- err
+					return
+				}
+
+				item.CreatedAt = createdAtItem.Format(time.RFC3339Nano)
+				merchant.Items = append(merchant.Items, item)
+			}
+
+			resultsChan <- merchant
+		}(merchant)
+	}
+
+	wg.Wait()
+	close(errChan)
+	close(resultsChan)
+
+	for err := range errChan {
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
+	var resultMerchants []entities.GetNearbyMerchantResponse
+	for merchant := range resultsChan {
+		resultMerchants = append(resultMerchants, merchant)
+	}
+
+	return resultMerchants, totalCount, nil
 }
 
 func (r *purchaseRepo) GetMerchantLocations(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) ([]entities.RoutePoint, error) {
-	//TODO: Asynchronize GetMerchantLocations
-	var merchants []entities.RoutePoint
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(getEstimatePayload.Orders))
+	startingPointsChan := make(chan entities.RoutePoint, len(getEstimatePayload.Orders))
+	nonStartingPointsChan := make(chan entities.RoutePoint, len(getEstimatePayload.Orders))
 
 	for _, order := range getEstimatePayload.Orders {
-		var merch entities.RoutePoint
-		query := "SELECT latitude, longitude FROM merchants WHERE id = $1"
+		wg.Add(1)
+		go func(order entities.Order) {
+			defer wg.Done()
 
-		row := r.db.QueryRow(ctx, query, order.MerchantId)
-		err := row.Scan(&merch.Latitude, &merch.Longitude)
+			var merch entities.RoutePoint
+			query := "SELECT latitude, longitude FROM merchants WHERE id = $1"
+
+			row := r.db.QueryRow(ctx, query, order.MerchantId)
+			err := row.Scan(&merch.Latitude, &merch.Longitude)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			if order.IsStartingPoint {
+				startingPointsChan <- merch
+			} else {
+				nonStartingPointsChan <- merch
+			}
+		}(order)
+	}
+
+	wg.Wait()
+	close(errChan)
+	close(startingPointsChan)
+	close(nonStartingPointsChan)
+
+	for err := range errChan {
 		if err != nil {
-			return []entities.RoutePoint{}, err
+			return nil, err
 		}
+	}
 
-		if order.IsStartingPoint {
-			merchants = append([]entities.RoutePoint{merch}, merchants...)
-		} else {
-			merchants = append(merchants, merch)
-		}
-
+	var merchants []entities.RoutePoint
+	for merch := range startingPointsChan {
+		merchants = append([]entities.RoutePoint{merch}, merchants...)
+	}
+	for merch := range nonStartingPointsChan {
+		merchants = append(merchants, merch)
 	}
 
 	return merchants, nil
+
 }
 
 func (r *purchaseRepo) GetTotalItemsPrice(ctx context.Context, getEstimatePayload entities.GetEstimatePayload) (int, error) {
-	//TODO: Asynchronize CheckItemsAvailability
-
-	var totalPrice int
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(getEstimatePayload.Orders))
+	priceChan := make(chan int, len(getEstimatePayload.Orders))
 
 	for _, order := range getEstimatePayload.Orders {
 		for _, item := range order.Items {
-			var price int
-			query := "SELECT price FROM items WHERE id = $1 AND merchant_id = $2"
+			wg.Add(1)
+			go func(order entities.Order, item entities.OrderItem) {
+				defer wg.Done()
 
-			err := r.db.QueryRow(ctx, query, item.ItemId, order.MerchantId).Scan(&price)
-			if err != nil {
-				return 0, err
-			}
-			totalPrice += (price * item.Quantity)
+				var price int
+				query := "SELECT price FROM items WHERE id = $1 AND merchant_id = $2"
+				err := r.db.QueryRow(ctx, query, item.ItemId, order.MerchantId).Scan(&price)
+				if err != nil {
+					errChan <- err
+					return
+				}
+				priceChan <- (price * item.Quantity)
+			}(order, item)
 		}
+	}
+
+	wg.Wait()
+	close(errChan)
+	close(priceChan)
+
+	for err := range errChan {
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	var totalPrice int
+	for price := range priceChan {
+		totalPrice += price
 	}
 
 	return totalPrice, nil

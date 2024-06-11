@@ -29,8 +29,18 @@ func (s *merchantSvc) RegisterMerchant(ctx context.Context, newMerchant entities
 		return "", responses.NewBadRequestError(err.Error())
 	}
 
-	id, err := s.repo.CreateMerchant(ctx, &newMerchant)
+	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx) // Ensures rollback in case of an error
+
+	id, err := s.repo.CreateMerchant(ctx, tx, &newMerchant)
+	if err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return "", err
 	}
 
@@ -38,7 +48,6 @@ func (s *merchantSvc) RegisterMerchant(ctx context.Context, newMerchant entities
 }
 
 func (s *merchantSvc) GetMerchant(ctx context.Context, getMerchantQueries entities.GetMerchantQueries) ([]entities.GetMerchantResponse, int, error) {
-
 	merchants, totalCount, err := s.repo.GetMerchants(ctx, getMerchantQueries)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -51,7 +60,13 @@ func (s *merchantSvc) GetMerchant(ctx context.Context, getMerchantQueries entiti
 }
 
 func (s *merchantSvc) RegisterItem(ctx context.Context, newItem entities.ItemRegistrationPayload) (string, error) {
-	_, err := s.repo.GetMerchant(ctx, newItem.MerchantId)
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx) // Ensures rollback in case of an error
+
+	_, err = s.repo.GetMerchant(ctx, tx, newItem.MerchantId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return "", responses.NewNotFoundError("merchantId not found")
@@ -63,8 +78,12 @@ func (s *merchantSvc) RegisterItem(ctx context.Context, newItem entities.ItemReg
 		return "", responses.NewBadRequestError(err.Error())
 	}
 
-	id, err := s.repo.CreateItem(ctx, &newItem)
+	id, err := s.repo.CreateItem(ctx, tx, &newItem)
 	if err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return "", err
 	}
 
@@ -72,7 +91,7 @@ func (s *merchantSvc) RegisterItem(ctx context.Context, newItem entities.ItemReg
 }
 
 func (s *merchantSvc) GetItem(ctx context.Context, getItemQueries entities.GetItemQueries) ([]entities.GetItemResponse, int, error) {
-	_, err := s.repo.GetMerchant(ctx, getItemQueries.MerchantId)
+	_, err := s.repo.GetMerchant(ctx, nil, getItemQueries.MerchantId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return []entities.GetItemResponse{}, 0, responses.NewNotFoundError("merchantId not found")

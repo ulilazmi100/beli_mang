@@ -9,6 +9,7 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -21,6 +22,7 @@ type PurchaseRepo interface {
 	SaveOrderItems(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, orderId string) error
 	PlaceOrder(ctx context.Context, placeOrderPayload entities.PlaceOrderPayload) (pgconn.CommandTag, error)
 	GetUserOrders(ctx context.Context, filter entities.GetUserOrderQueries) ([]entities.GetUserOrderResponse, error)
+	BeginTx(ctx context.Context) (pgx.Tx, error)
 }
 
 type purchaseRepo struct {
@@ -305,6 +307,10 @@ func (r *purchaseRepo) GetUserOrders(ctx context.Context, filter entities.GetUse
 	}
 
 	return orders, nil
+}
+
+func (r *purchaseRepo) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.db.Begin(ctx)
 }
 
 func getNearbyMerchantConstructWhereQuery(filter entities.GetNearbyMerchantQueries) string {

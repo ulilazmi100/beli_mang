@@ -32,11 +32,15 @@ func (s *userSvc) AdminRegister(ctx context.Context, newUser entities.Registrati
 
 	role := "admin"
 
-	existingUser, err := s.repo.GetUserByUsernameOrMailAndRole(ctx, newUser.Username, newUser.Email, role)
+	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
-		if err != pgx.ErrNoRows {
-			return "", err
-		}
+		return "", err
+	}
+	defer tx.Rollback(ctx) // Ensure rollback on failure
+
+	existingUser, err := s.repo.GetUserByUsernameOrMailAndRoleTx(ctx, tx, newUser.Username, newUser.Email, role)
+	if err != nil && err != pgx.ErrNoRows {
+		return "", err
 	}
 
 	if existingUser != nil {
@@ -48,12 +52,17 @@ func (s *userSvc) AdminRegister(ctx context.Context, newUser entities.Registrati
 		return "", err
 	}
 
-	id, err := s.repo.CreateUser(ctx, &newUser, hashedPassword, role)
+	id, err := s.repo.CreateUserTx(ctx, tx, &newUser, hashedPassword, role)
 	if err != nil {
 		return "", err
 	}
 
 	token, err := crypto.GenerateToken(id, newUser.Username, role)
+	if err != nil {
+		return "", err
+	}
+
+	err = tx.Commit(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -96,11 +105,15 @@ func (s *userSvc) UserRegister(ctx context.Context, newUser entities.Registratio
 
 	role := "user"
 
-	existingUser, err := s.repo.GetUserByUsernameOrMailAndRole(ctx, newUser.Username, newUser.Email, role)
+	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
-		if err != pgx.ErrNoRows {
-			return "", err
-		}
+		return "", err
+	}
+	defer tx.Rollback(ctx) // Ensure rollback on failure
+
+	existingUser, err := s.repo.GetUserByUsernameOrMailAndRoleTx(ctx, tx, newUser.Username, newUser.Email, role)
+	if err != nil && err != pgx.ErrNoRows {
+		return "", err
 	}
 
 	if existingUser != nil {
@@ -112,12 +125,17 @@ func (s *userSvc) UserRegister(ctx context.Context, newUser entities.Registratio
 		return "", err
 	}
 
-	id, err := s.repo.CreateUser(ctx, &newUser, hashedPassword, role)
+	id, err := s.repo.CreateUserTx(ctx, tx, &newUser, hashedPassword, role)
 	if err != nil {
 		return "", err
 	}
 
 	token, err := crypto.GenerateToken(id, newUser.Username, role)
+	if err != nil {
+		return "", err
+	}
+
+	err = tx.Commit(ctx)
 	if err != nil {
 		return "", err
 	}

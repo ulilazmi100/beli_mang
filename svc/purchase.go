@@ -28,6 +28,12 @@ func NewPurchaseSvc(repo repo.PurchaseRepo) PurchaseSvc {
 
 func (s *purchaseSvc) GetNearbyMerchant(ctx context.Context, getNearbyMerchantQueries entities.GetNearbyMerchantQueries) ([]entities.GetNearbyMerchantResponse, int, error) {
 
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return []entities.GetNearbyMerchantResponse{}, 0, err
+	}
+	defer tx.Rollback(ctx)
+
 	merchants, totalCount, err := s.repo.GetNearbyMerchants(ctx, getNearbyMerchantQueries)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -36,10 +42,20 @@ func (s *purchaseSvc) GetNearbyMerchant(ctx context.Context, getNearbyMerchantQu
 		return []entities.GetNearbyMerchantResponse{}, 0, err
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return []entities.GetNearbyMerchantResponse{}, 0, err
+	}
+
 	return merchants, totalCount, nil
 }
 
 func (s *purchaseSvc) GetOrderEstimation(ctx context.Context, getEstimatePayload entities.GetEstimatePayload, userId string) (entities.GetEstimateResponse, error) {
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return entities.GetEstimateResponse{}, err
+	}
+	defer tx.Rollback(ctx)
+
 	if err := getEstimatePayload.Validate(); err != nil {
 		if strings.Contains(err.Error(), "invalid UUID") {
 			return entities.GetEstimateResponse{}, responses.NewNotFoundError(err.Error())
@@ -84,11 +100,6 @@ func (s *purchaseSvc) GetOrderEstimation(ctx context.Context, getEstimatePayload
 
 	estimatedDeliveryTime := utils.EstimatedDeliveryTimeInMinutes(distance)
 
-	var getEstimateResponse entities.GetEstimateResponse
-
-	getEstimateResponse.EstimatedDeliveryTimeInMinutes = estimatedDeliveryTime
-	getEstimateResponse.TotalPrice = totalPrice
-
 	orderId, err := s.repo.SaveOrderEstimation(ctx, entities.OrderInfo{
 		UserId:                         userId,
 		TotalPrice:                     totalPrice,
@@ -104,6 +115,10 @@ func (s *purchaseSvc) GetOrderEstimation(ctx context.Context, getEstimatePayload
 		return entities.GetEstimateResponse{}, err
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return entities.GetEstimateResponse{}, err
+	}
+
 	return entities.GetEstimateResponse{
 		TotalPrice:                     totalPrice,
 		EstimatedDeliveryTimeInMinutes: estimatedDeliveryTime,
@@ -112,6 +127,12 @@ func (s *purchaseSvc) GetOrderEstimation(ctx context.Context, getEstimatePayload
 }
 
 func (s *purchaseSvc) PlaceOrder(ctx context.Context, placeOrderPayload entities.PlaceOrderPayload) (entities.PlaceOrderResponse, error) {
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return entities.PlaceOrderResponse{}, err
+	}
+	defer tx.Rollback(ctx)
+
 	if err := placeOrderPayload.Validate(); err != nil {
 		return entities.PlaceOrderResponse{}, responses.NewBadRequestError(err.Error())
 	}
@@ -123,6 +144,10 @@ func (s *purchaseSvc) PlaceOrder(ctx context.Context, placeOrderPayload entities
 
 	if err != nil {
 		return entities.PlaceOrderResponse{}, responses.NewInternalServerError(err.Error())
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return entities.PlaceOrderResponse{}, err
 	}
 
 	return entities.PlaceOrderResponse{

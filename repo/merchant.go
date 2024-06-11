@@ -7,14 +7,16 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type MerchantRepo interface {
-	GetMerchant(ctx context.Context, merchantId string) (string, error)
-	CreateMerchant(ctx context.Context, merchant *entities.MerchantRegistrationPayload) (string, error)
+	BeginTx(ctx context.Context) (pgx.Tx, error)
+	GetMerchant(ctx context.Context, tx pgx.Tx, merchantId string) (string, error)
+	CreateMerchant(ctx context.Context, tx pgx.Tx, merchant *entities.MerchantRegistrationPayload) (string, error)
 	GetMerchants(ctx context.Context, filter entities.GetMerchantQueries) ([]entities.GetMerchantResponse, int, error)
-	CreateItem(ctx context.Context, item *entities.ItemRegistrationPayload) (string, error)
+	CreateItem(ctx context.Context, tx pgx.Tx, item *entities.ItemRegistrationPayload) (string, error)
 	GetItem(ctx context.Context, filter entities.GetItemQueries) ([]entities.GetItemResponse, int, error)
 }
 
@@ -26,11 +28,20 @@ func NewMerchantRepo(db *pgxpool.Pool) MerchantRepo {
 	return &merchantRepo{db}
 }
 
-func (r *merchantRepo) GetMerchant(ctx context.Context, merchantId string) (string, error) {
+func (r *merchantRepo) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return r.db.Begin(ctx)
+}
+
+func (r *merchantRepo) GetMerchant(ctx context.Context, tx pgx.Tx, merchantId string) (string, error) {
 	var id string
 	query := "SELECT id FROM merchants WHERE id = $1"
 
-	row := r.db.QueryRow(ctx, query, merchantId)
+	var row pgx.Row
+	if tx != nil {
+		row = tx.QueryRow(ctx, query, merchantId)
+	} else {
+		row = r.db.QueryRow(ctx, query, merchantId)
+	}
 	err := row.Scan(&id)
 	if err != nil {
 		return "", err
@@ -39,12 +50,16 @@ func (r *merchantRepo) GetMerchant(ctx context.Context, merchantId string) (stri
 	return id, nil
 }
 
-func (r *merchantRepo) CreateMerchant(ctx context.Context, merchant *entities.MerchantRegistrationPayload) (string, error) {
+func (r *merchantRepo) CreateMerchant(ctx context.Context, tx pgx.Tx, merchant *entities.MerchantRegistrationPayload) (string, error) {
 	var id string
-
 	statement := "INSERT INTO merchants (name, merchant_category, image_url, latitude, longitude) VALUES ($1, $2, $3, $4, $5) RETURNING id"
 
-	row := r.db.QueryRow(ctx, statement, merchant.Name, merchant.MerchantCategory, merchant.ImageUrl, merchant.Location.Latitude, merchant.Location.Longitude)
+	var row pgx.Row
+	if tx != nil {
+		row = tx.QueryRow(ctx, statement, merchant.Name, merchant.MerchantCategory, merchant.ImageUrl, merchant.Location.Latitude, merchant.Location.Longitude)
+	} else {
+		row = r.db.QueryRow(ctx, statement, merchant.Name, merchant.MerchantCategory, merchant.ImageUrl, merchant.Location.Latitude, merchant.Location.Longitude)
+	}
 	if err := row.Scan(&id); err != nil {
 		return "", err
 	}
@@ -90,12 +105,16 @@ func (r *merchantRepo) GetMerchants(ctx context.Context, filter entities.GetMerc
 	return merchants, totalCount, nil
 }
 
-func (r *merchantRepo) CreateItem(ctx context.Context, item *entities.ItemRegistrationPayload) (string, error) {
+func (r *merchantRepo) CreateItem(ctx context.Context, tx pgx.Tx, item *entities.ItemRegistrationPayload) (string, error) {
 	var id string
-
 	statement := "INSERT INTO items (merchant_id, name, product_category, price, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING id"
 
-	row := r.db.QueryRow(ctx, statement, item.MerchantId, item.Name, item.ProductCategory, item.Price, item.ImageUrl)
+	var row pgx.Row
+	if tx != nil {
+		row = tx.QueryRow(ctx, statement, item.MerchantId, item.Name, item.ProductCategory, item.Price, item.ImageUrl)
+	} else {
+		row = r.db.QueryRow(ctx, statement, item.MerchantId, item.Name, item.ProductCategory, item.Price, item.ImageUrl)
+	}
 	if err := row.Scan(&id); err != nil {
 		return "", err
 	}

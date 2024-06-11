@@ -11,6 +11,7 @@ import (
 type UserRepo interface {
 	GetUser(ctx context.Context, username string) (*entities.User, error)
 	GetUserByUsernameOrMailAndRole(ctx context.Context, username string, email string, role string) (*entities.User, error)
+	GetUserByUsernameOrMailAndRoleTx(ctx context.Context, tx pgx.Tx, username string, email string, role string) (*entities.User, error)
 	CreateUser(ctx context.Context, user *entities.RegistrationPayload, hashPassword string, role string) (string, error)
 	CreateUserTx(ctx context.Context, tx pgx.Tx, user *entities.RegistrationPayload, hashPassword string, role string) (string, error)
 	GetUsernameById(ctx context.Context, id string) (*entities.User, error)
@@ -44,6 +45,20 @@ func (r *userRepo) GetUserByUsernameOrMailAndRole(ctx context.Context, username 
 	query := "SELECT id, email, password, role FROM users WHERE username = $1 OR (email = $2 AND role = $3)"
 
 	row := r.db.QueryRow(ctx, query, username, email, role)
+	err := row.Scan(&user.Id, &user.Email, &user.Password, &user.Role)
+	if err != nil {
+		return nil, err
+	}
+	user.Username = username
+
+	return &user, nil
+}
+
+func (r *userRepo) GetUserByUsernameOrMailAndRoleTx(ctx context.Context, tx pgx.Tx, username string, email string, role string) (*entities.User, error) {
+	var user entities.User
+	query := "SELECT id, email, password, role FROM users WHERE username = $1 OR (email = $2 AND role = $3)"
+
+	row := tx.QueryRow(ctx, query, username, email, role)
 	err := row.Scan(&user.Id, &user.Email, &user.Password, &user.Role)
 	if err != nil {
 		return nil, err

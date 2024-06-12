@@ -19,7 +19,7 @@ type Server struct {
 func NewServer(db *pgxpool.Pool) *Server {
 	app := fiber.New(fiber.Config{
 		Prefork:      false, // Disable prefork as it may increase memory usage per process (originally it's disabled by default though)
-		Concurrency:  10,    // Adjust this based on testing, e.g., start with 10
+		Concurrency:  20,    // Adjust this based on testing, e.g., start with 10
 		ErrorHandler: local_mid.ErrorHandler,
 	})
 

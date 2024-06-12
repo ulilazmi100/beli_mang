@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/go-playground/validator/v10"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
@@ -19,9 +20,9 @@ type Server struct {
 
 func NewServer(db *pgxpool.Pool) *Server {
 	app := fiber.New(fiber.Config{
-		Prefork:      false, // Disable prefork as it may increase memory usage per process (originally it's disabled by default though)
-		Concurrency:  60,    // Adjust this based on testing, e.g., start with 10
 		ErrorHandler: local_mid.ErrorHandler,
+		JSONEncoder:  json.Marshal,
+		JSONDecoder:  json.Unmarshal,
 	})
 
 	validate := validator.New()

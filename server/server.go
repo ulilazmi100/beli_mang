@@ -23,6 +23,7 @@ func NewServer(db *pgxpool.Pool) *Server {
 		ErrorHandler: local_mid.ErrorHandler,
 		JSONEncoder:  json.Marshal,
 		JSONDecoder:  json.Unmarshal,
+		Concurrency:  60,
 	})
 
 	validate := validator.New()

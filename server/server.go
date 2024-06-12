@@ -17,15 +17,14 @@ type Server struct {
 }
 
 func NewServer(db *pgxpool.Pool) *Server {
-	// Create a Fiber instance
 	app := fiber.New(fiber.Config{
+		Prefork:      false, // Disable prefork as it may increase memory usage per process (originally it's disabled by default though)
+		Concurrency:  10,    // Adjust this based on testing, e.g., start with 10
 		ErrorHandler: local_mid.ErrorHandler,
 	})
 
-	// Initialize validator
 	validate := validator.New()
 
-	// Middleware
 	app.Use(logger.New())
 
 	return &Server{

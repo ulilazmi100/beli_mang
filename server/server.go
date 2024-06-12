@@ -1,8 +1,8 @@
 package server
 
 import (
+	"github.com/bytedance/sonic"
 	"github.com/go-playground/validator/v10"
-	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
@@ -21,8 +21,8 @@ type Server struct {
 func NewServer(db *pgxpool.Pool) *Server {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: local_mid.ErrorHandler,
-		JSONEncoder:  json.Marshal,
-		JSONDecoder:  json.Unmarshal,
+		JSONEncoder:  sonic.Marshal,
+		JSONDecoder:  sonic.Unmarshal,
 		Concurrency:  60,
 	})
 

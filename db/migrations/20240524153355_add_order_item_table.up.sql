@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- -- Index on order_items for quick lookups by order_id and merchant_id
--- CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id);
--- CREATE INDEX IF NOT EXISTS idx_order_items_item_id ON order_items (item_id);
+-- Index on order_items for quick lookups by order_id and merchant_id
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_item_id ON order_items (item_id);
 
--- CREATE INDEX IF NOT EXISTS idx_order_items_order_item ON order_items (order_id, item_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_item ON order_items (order_id, item_id);

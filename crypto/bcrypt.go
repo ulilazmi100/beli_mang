@@ -31,7 +31,7 @@ func GenerateHashedPassword(password string) (string, error) {
 	// Ensure bcrypt cost is initialized only once.
 	bcryptCostOnce.Do(initBcryptCost)
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate hashed password: %w", err)
 	}

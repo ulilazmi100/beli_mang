@@ -68,7 +68,7 @@ jobs:
         ECR_REPOSITORY: m_ulil_azmi-repository
         IMAGE_TAG: ${{ steps.determine-version.outputs.version }}
         CLUSTER_NAME: projectsprint
-        SERVICE_NAME: m_ulil_azmi-service
+        SERVICE_NAME: m_ulil_azmi-v2-service
       run: |
         echo "Updating ECS service..."
         aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment --region ${{ secrets.AWS_REGION }} --output json

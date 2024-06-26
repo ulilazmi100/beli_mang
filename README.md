@@ -134,6 +134,9 @@ Beli Mang leverages advanced algorithms such as the Haversine formula and the Tr
     make load-test
     ```
 
+### Tests Result
+- My personal test results or benchmarks can be seen in the `benchmark` folder
+
 ---
 
 ## 🛠 Database Migration

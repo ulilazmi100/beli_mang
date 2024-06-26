@@ -1,0 +1,118 @@
+BeliMangTestCasesPB2W4 on  main [!] is 📦 v1.0.0 via 🐹 v1.22.3 via  on ☁️  (ap-southeast-1) took 1m3s
+❯ make load-test
+git pull origin main;
+From https://github.com/nandanugg/BeliMangTestCasesPB2W4
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+LOAD_TEST=true k6 run index.js;
+
+          /\      |‾‾| /‾‾/   /‾‾/
+     /\  /  \     |  |/  /   /  /
+    /  \/    \    |     (   /   ‾‾\
+   /          \   |  |\  \ |  (‾)  |
+  / __________ \  |__| \__\ \_____/ .io
+
+     execution: local
+        script: index.js
+        output: -
+
+     scenarios: (100.00%) 1 scenario, 300 max VUs, 1m18s max duration (incl. graceful stop):
+              * default: Up to 300 looping VUs for 48s over 8 stages (gracefulRampDown: 30s, gracefulStop: 30s)
+
+INFO[0003] ⛑️ ARMING... ⛑️                               source=console
+INFO[0003] 🚀 NUKE READY!                                 source=console
+INFO[0003] 💥 FAYYYAAAAH! 🇯🇵                              source=console
+INFO[0003] Adding all pregenerated merchants... 😰        source=console
+INFO[0010] All pregenerated merchants added! 🥳           source=console
+INFO[0060] Test ended, I recomend to remove all of your merchants before re-run the test to avoid miss estimation on nearest merchant location.  source=console
+
+     ✓ Admin Register | valid payload | should return 201
+     ✓ Admin Register | register twice | should return 409
+     ✓ Admin Login | valid payload | should return 200
+     ✓ Merchant Get | no param | should return 200
+     ✓ Merchant Get | no param | should have the correct total data based on pagination
+     ✓ Merchant Get | no param | should have merchantId
+     ✓ Merchant Get | no param | should have name
+     ✓ Merchant Get | no param | should have imageUrl
+     ✓ Merchant Get | no param | should have merchantCategory
+     ✓ Merchant Get | no param | should have createdAt with correct format
+     ✓ Merchant Get | no param | should have return ordered correctly
+     ✓ Merchant Get | no param | should have location.lat
+     ✓ Merchant Get | no param | should have location.long
+     ✓ Merchant Get | no param | should have meta.limit
+     ✓ Merchant Get | no param | should have meta.offset
+     ✓ Merchant Get | no param | should have meta.total
+     ✓ Merchant Get | with name=a param | should have name with "a" in it
+     ✓ Merchant Get | with merchantCategory=BoothKiosk param | should have "BoothKiosk" category in it
+     ✓ Merchant Get | with createdAt=asc param | should have return ordered correctly
+     ✓ Merchant Get | pagination | should have the correct total data based on pagination
+     ✓ User Register | valid payload | should return 201
+     ✓ User Register | register twice | should return 409
+     ✓ User Login | valid payload | should return 200
+     ✓ User Get Nearby Merchant | no param | should have the correct nearest merchant
+     ✓ User Get Nearby Merchant | with name=a param | should have name with "a" in it
+     ✓ User Get Nearby Merchant | with merchantCategory=BoothKiosk param | should have "BoothKiosk" category in it
+     ✓ User Estimate Order Test | get merchant items | should return 200
+     ✓ User Estimate Order Test | get merchant items | should have itemId
+     ✓ User Estimate Order Test | add merchant items if not exists | should return 201
+     ✓ User Estimate Order Test | add merchant items if not exists | should have itemId
+     ✓ User Estimate Order Test | valid payload | should return 200
+     ✓ User Estimate Order Test | valid payload | should have totalPrice and equal to calculated total
+     ✓ User Estimate Order Test | valid payload | should have calculatedEstimateId
+     ✓ User Estimate Order Test | valid payload | should have estimatedDeliveryTimeInMinutes and not far from precalculated result
+     ✓ User Order Test | valid payload | should return 201
+     ✓ User Order Test | valid payload | should have orderId
+     ✓ User Get Order Test | no param | should return 200
+     ✓ User Get Order Test | no param | should have the correct total data based on pagination
+     ✓ User Get Order Test | no param | should have merchant.merchantId
+     ✓ User Get Order Test | no param | should have merchant.name
+     ✓ User Get Order Test | no param | should have merchant.imageUrl
+     ✓ User Get Order Test | no param | should have merchant.merchantCategory
+     ✓ User Get Order Test | no param | should have merchant.createdAt
+     ✓ User Get Order Test | no param | should have merchant.location.lat
+     ✓ User Get Order Test | no param | should have merchant.location.long
+     ✓ User Get Order Test | no param | should have items.itemId
+     ✓ User Get Order Test | no param | should have items.name
+     ✓ User Get Order Test | no param | should have items.imageUrl
+     ✓ User Get Order Test | no param | should have items.productCategory
+     ✓ User Get Order Test | no param | should have items.createdAt
+     ✓ User Get Order Test | with name=a param | should have name with "a" in it
+     ✗ User Get Order Test | with merchantCategory=BoothKiosk param | should have "BoothKiosk" category in it
+      ↳  80% — ✓ 1510 / ✗ 366
+     ✓ User Get Order Test | pagination | should have the correct total data based on pagination
+
+     █ setup
+
+       ✓ Admin Register | valid payload | should return 201
+       ✓ Admin Register | register twice | should return 409
+       ✓ Admin Login | valid payload | should return 200
+       ✓ Merchant Post | valid payload | should return 201
+       ✓ Merchant Post | valid payload | should have merchantId
+
+     █ teardown
+
+     checks.........................: 99.78% ✓ 170193      ✗ 366
+     data_received..................: 1.0 GB 18 MB/s
+     data_sent......................: 32 MB  560 kB/s
+     grpc_req_duration..............: avg=52.25ms  min=91.29µs  med=2.54ms  max=1.95s    p(90)=84.98ms p(95)=252.85ms
+     http_req_blocked...............: avg=35.24µs  min=618ns    med=2.45µs  max=124.08ms p(90)=5.52µs  p(95)=7.77µs
+     http_req_connecting............: avg=25.77µs  min=0s       med=0s      max=81.85ms  p(90)=0s      p(95)=0s
+     http_req_duration..............: avg=32.97ms  min=331µs    med=8.84ms  max=935.78ms p(90)=94.95ms p(95)=142.72ms
+       { expected_response:true }...: avg=33.34ms  min=331µs    med=9.22ms  max=935.78ms p(90)=95.6ms  p(95)=144.32ms
+     http_req_failed................: 4.88%  ✓ 3753        ✗ 73086
+     http_req_receiving.............: avg=234.48µs min=7.04µs   med=39.76µs max=626.54ms p(90)=87.65µs p(95)=118.34µs
+     http_req_sending...............: avg=82.89µs  min=2.85µs   med=14.44µs max=203.15ms p(90)=38.81µs p(95)=48.99µs
+     http_req_tls_handshaking.......: avg=0s       min=0s       med=0s      max=0s       p(90)=0s      p(95)=0s
+     http_req_waiting...............: avg=32.65ms  min=292.01µs med=8.75ms  max=654.22ms p(90)=94.25ms p(95)=141.41ms
+     http_reqs......................: 76839  1347.937668/s
+     iteration_duration.............: avg=2.83s    min=2.36ms   med=1.76s   max=7.8s     p(90)=6.32s   p(95)=6.63s
+     iterations.....................: 1876   32.909474/s
+     vus............................: 18     min=0         max=300
+     vus_max........................: 300    min=300       max=300
+
+
+running (0m57.0s), 000/300 VUs, 1876 complete and 0 interrupted iterations
+default ✓ [======================================] 000/300 VUs  48s
+
+BeliMangTestCasesPB2W4 on  main [!] is 📦 v1.0.0 via 🐹 v1.22.3 via  on ☁️  (ap-southeast-1) took 1m2s
+❯
